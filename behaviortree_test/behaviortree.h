@@ -1,0 +1,206 @@
+/* behaviortree.h
+ * by Germain Sauvé
+ * 
+ * IN DEVELOPMENT - NOT COMPLETE
+ * 
+ */
+
+#ifndef __BEHAVIOR_TREE__
+#define __BEHAVIOR_TREE__
+
+#include <Arduino.h>
+
+#define __DEBUG__
+
+
+#ifndef __MAXBEHAVIORTREENODE__
+#define __MAXBEHAVIORTREENODE__ 32
+#endif
+
+#ifndef __MAXBTREEDEPTHVISITOR__
+#define __MAXBTREEDEPTHVISITOR__ 16
+#endif
+
+#ifndef __MAXBBELEMENTS__
+#define __MAXBBELEMENTS__ 16
+#endif
+
+#ifndef __MAXBEVENTS__
+#define __MAXBEVENTS__ 4
+#endif
+
+#ifndef __MAXBSCHEDULENODE__
+#define __MAXBSCHEDULENODE__ 8
+#endif
+
+// list of basic node type
+
+// list of node status
+
+// composite
+
+#define BEHAVE_NOTYPE 0
+#define BEHAVE_SEQUENCE 1
+#define BEHAVE_SELECTOR 2
+#define BEHAVE_RANDOM 3
+#define BEHAVE_PARALLEL 4
+#define BEHAVE_LOOP 5
+// decotator
+#define BEHAVE_SUCCEEDER 6
+#define BEHAVE_INVERTER 7
+#define BEHAVE_FAILER 8
+
+// Proxy, Delete, autre 
+#define BEHAVE_DELETE 10 // Delete subtree on success
+#define BEHAVE_PROXY 11
+
+ // Debug 20 - 24
+#define BEHAVE_DEBUGPRINT 20
+#define BEHAVE_DELAY 21
+
+// Event 30 - 39
+
+
+// custom actions 40+
+
+
+
+// Node status
+#define NODE_STATUS_UNTOUCH 0
+#define NODE_STATUS_SUCCESS 1
+#define NODE_STATUS_FAILURE 2
+#define NODE_STATUS_RUNNING 3
+#define NODE_STATUS_DELETE 4
+
+#define BEHAVE_NODE_NO_INDEX 255
+
+class BlackBoard
+{
+protected:
+  int elements[__MAXBBELEMENTS__];
+  byte elemstate[__MAXBBELEMENTS__];
+public:
+  int setNewElement( int value );
+  boolean releaseElement( int key);
+  int get( int key );
+  boolean set(int key, int value );
+  boolean forceElementValue( int key, int value );
+};
+
+
+
+class BehaviorEvent
+{
+public:
+  byte type;
+  int data;
+};
+
+
+class BehaviorTreeNode
+{
+protected:
+  
+public:
+  int data;
+  byte type;
+  byte state;
+  byte child;
+  byte next;
+
+  void init( byte type, int data);
+  void clear();
+
+  #ifdef __DEBUG__
+  void debugPrint(byte depth);
+  #endif 
+};
+
+
+class BehaviorTreeVisitor
+{
+protected:
+  BehaviorTreeNode* nodes;
+  byte maxNode;
+  byte endnode;
+  byte currentNode;
+  byte depthvisited[__MAXBTREEDEPTHVISITOR__];
+  byte depth;
+public:
+  BehaviorTreeVisitor();
+  BehaviorTreeVisitor(BehaviorTreeNode* n, byte maxn, byte start);
+  void init(BehaviorTreeNode* n, byte maxn, byte start);
+  
+  byte getIndex()
+  {
+    return currentNode;
+  }
+  
+  byte getDepth()
+  {
+    return this->depth;
+  }
+  
+  boolean hasReachEnd();
+  
+  boolean moveNext();
+  boolean moveUp();
+  boolean moveDown();
+
+  boolean hasNext();
+  boolean hasChild();
+
+  BehaviorTreeNode* current()
+  {
+    return &(this->nodes[this->currentNode]);
+  }
+};
+
+
+class BehaviorTree
+{
+protected:
+  BehaviorTreeNode nodes[__MAXBEHAVIORTREENODE__];
+  byte freeNodes[__MAXBEHAVIORTREENODE__];
+  byte nbrFree;
+  byte root;
+
+  BehaviorEvent events[__MAXBEVENTS__];
+  byte scheduleNodes[__MAXBSCHEDULENODE__];
+
+  int popFree();
+  void PushFree(int idx);
+
+  void deleteNode(byte parent, byte node);
+public:
+  void init();
+
+
+  int setRoot(byte type, int data);
+  // Insertion
+  boolean addChild( byte parent, byte type, int data );
+  boolean addNext( byte previous, byte type, int data );
+
+  boolean deserialize( byte nodeparent, byte* data );
+  boolean deserialize_flash(byte nodeparent, byte* data );
+
+  // Visitor
+  void initVisitor( BehaviorTreeVisitor& visitor );
+
+
+  // management
+  boolean deleteChildNode( byte parent, byte node);
+  byte getFreeNodes()
+  {
+    return this->nbrFree;
+  }
+  void clean();
+
+#ifdef __DEBUG__
+  void debugPrintNode(byte node, byte depth);
+  void debugPrint();
+#endif 
+};
+
+
+#endif
