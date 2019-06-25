@@ -13,7 +13,8 @@ void BehaviorTreeNode::init( byte type, int data)
   this->data = data;
   this->next = BEHAVE_NODE_NO_INDEX;
   this->child = BEHAVE_NODE_NO_INDEX;
-  this->state = NODE_STATUS_UNTOUCH;
+  this->setState(NODE_STATUS_UNTOUCH);
+  this->setPriority(0);
 }
  
 void BehaviorTreeNode::clear()
@@ -22,7 +23,8 @@ void BehaviorTreeNode::clear()
   this->data = 0;
   this->next = BEHAVE_NODE_NO_INDEX;
   this->child = BEHAVE_NODE_NO_INDEX;
-  this->state = NODE_STATUS_UNTOUCH;
+  this->setState(NODE_STATUS_UNTOUCH);
+  this->setPriority(0);
 }
 
 #ifdef __DEBUG__
@@ -37,7 +39,9 @@ void BehaviorTreeNode::debugPrint(byte depth)
   Serial.print(':');
   Serial.print(this->data);
   Serial.print(':');
-  Serial.println(this->state);
+  Serial.print(this->getState());
+  Serial.print(':');
+  Serial.println(this->getPriority());
 }
 #endif 
 
@@ -116,7 +120,13 @@ boolean BehaviorTreeVisitor::moveDown()
   }
   return false;
 }
-  
+
+
+boolean BehaviorTreeVisitor::moveToChild( byte idx )
+{
+  // move down then next idx times
+  return false;
+};
 
 // simplifie l'acces au node
 boolean BehaviorTreeVisitor::hasNext()
@@ -129,7 +139,10 @@ boolean BehaviorTreeVisitor::hasChild()
   return this->current()->child != BEHAVE_NODE_NO_INDEX;
 }
   
-
+byte BehaviorTreeVisitor::getChildLength()
+{
+  return 0;
+}
 
 
 int BehaviorTree::popFree()

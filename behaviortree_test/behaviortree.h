@@ -48,7 +48,7 @@
 // decotator
 #define BEHAVE_SUCCEEDER 6
 #define BEHAVE_INVERTER 7
-#define BEHAVE_FAILER 8
+#define BEHAVE_FAIL 8
 
 // Proxy, Delete, autre 
 #define BEHAVE_DELETE 10 // Delete subtree on success
@@ -111,6 +111,23 @@ public:
   void init( byte type, int data);
   void clear();
 
+  byte getState()
+  {
+    return this->state;
+  }
+  byte getPriority()
+  {
+    return 0;  
+  }
+  void setState(byte state)
+  {
+    this->state  = state;
+  }
+  void setPriority(byte priority)
+  {
+    return;
+  }
+
   #ifdef __DEBUG__
   void debugPrint(byte depth);
   #endif 
@@ -146,6 +163,7 @@ public:
   boolean moveNext();
   boolean moveUp();
   boolean moveDown();
+  boolean moveToChild( byte idx );
 
   boolean hasNext();
   boolean hasChild();
@@ -154,6 +172,8 @@ public:
   {
     return &(this->nodes[this->currentNode]);
   }
+
+  byte getChildLength();
 };
 
 
