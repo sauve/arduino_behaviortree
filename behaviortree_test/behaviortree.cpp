@@ -41,7 +41,11 @@ void BehaviorTreeNode::debugPrint(byte depth)
   Serial.print(':');
   Serial.print(this->getState());
   Serial.print(':');
-  Serial.println(this->getPriority());
+  Serial.print(this->getPriority());
+  Serial.print(':');
+  Serial.print(this->child);
+  Serial.print(':');
+  Serial.println(this->next);
 }
 #endif 
 
@@ -91,8 +95,11 @@ boolean BehaviorTreeVisitor::moveNext()
   if ( this->hasNext() )
   {
     this->currentNode = this->current()->next;
+    // Serial.print("Move next to ");
+    // Serial.println(this->currentNode);
     return true;
   }
+  // Serial.println("Can't move next");
   return false;
 }
   
@@ -101,8 +108,11 @@ boolean BehaviorTreeVisitor::moveUp()
   if ( depth > 0)
   {
     this->currentNode = this->depthvisited[--depth];
+    // Serial.print("Move up to ");
+    // Serial.println(this->currentNode);
     return true;
   }
+  // Serial.println("Can't move Up");
   return false;
 }
   
@@ -116,8 +126,11 @@ boolean BehaviorTreeVisitor::moveDown()
       endnode = this->currentNode;
     }
     this->depthvisited[++depth] = this->currentNode;
+    // Serial.print("Move down to ");
+    // Serial.println(this->currentNode);
     return true;
   }
+  // Serial.println("Can't move down");
   return false;
 }
 
@@ -190,26 +203,32 @@ int BehaviorTree::setRoot(byte type, int data)
 }
 
 // Insertion
-boolean BehaviorTree::addChild( byte parent, byte type, int data )
+int BehaviorTree::addChild( byte parent, byte type, int data )
 {
   int ret = this->popFree();
   if ( ret < 0)
     return ret;
   
   // si pas d'enfant, prend la place, sinon va a la fin des enfants
-  
-  this->nodes[ret].init( type, data);
+  Serial.print("addchild ");
+  Serial.print(ret);
+  Serial.print(" to ");
+  Serial.println(parent);
+  this->nodes[ret].init(type, data);
   this->nodes[ret].next = this->nodes[parent].child;
   this->nodes[parent].child = ret;
   return ret;
 }
 
-boolean BehaviorTree::addNext( byte previous, byte type, int data )
+int BehaviorTree::addNext( byte previous, byte type, int data )
 {
   int ret = this->popFree();
   if ( ret < 0)
     return ret;
-  
+  Serial.print("addnext ");
+  Serial.print(ret);
+  Serial.print(" to ");
+  Serial.println(previous);
   // garde next en memoire, prend la place et set le nouveau avec ancien next
   this->nodes[ret].init( type, data);
   this->nodes[ret].next = this->nodes[previous].next;
@@ -342,6 +361,7 @@ void BehaviorTree::clean()
 #ifdef __DEBUG__
 void BehaviorTree::debugPrintNode(byte node, byte depth)
 {
+  Serial.print(node);
   this->nodes[node].debugPrint(depth);
   if (this->nodes[node].child != BEHAVE_NODE_NO_INDEX )
   {

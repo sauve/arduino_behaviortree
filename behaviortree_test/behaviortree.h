@@ -198,8 +198,8 @@ public:
 
   int setRoot(byte type, int data);
   // Insertion
-  boolean addChild( byte parent, byte type, int data );
-  boolean addNext( byte previous, byte type, int data );
+  int addChild( byte parent, byte type, int data );
+  int addNext( byte previous, byte type, int data );
 
   boolean deserialize( byte nodeparent, byte* data );
   boolean deserialize_flash(byte nodeparent, byte* data );
