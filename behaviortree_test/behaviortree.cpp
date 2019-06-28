@@ -7,6 +7,52 @@
  
 #include "behaviortree.h"
 
+void BlackBoard::init()
+{
+  for ( int i = 0; i < __MAXBBELEMENTS__ - 1; ++i )
+  {
+    elements[i] = 0;
+    elemKey[i] = BLACKBOARD_NOKEY;
+    elemState[i] = 0;
+  }
+}
+
+int BlackBoard::setNewElement( int value )
+{
+  return BLACKBOARD_NOKEY;
+}
+
+boolean BlackBoard::releaseElement( int key)
+{
+  // find key index, set state to none
+  return false;
+}
+
+boolean BlackBoard::hasKey(int key )
+{
+  // search for key, return true if found in use
+  return false;
+}
+
+int BlackBoard::get( int key )
+{
+  // find key index, return value
+  return 0;
+}
+
+boolean BlackBoard::set(int key, int value )
+{
+  // find free ements index, set key and value
+  return false;
+}
+
+boolean BlackBoard::forceElementValue( int key, int value )
+{
+  // find least used or other mnemonic elem to release and set from index
+  return false;
+}
+
+
 void BehaviorTreeNode::init( byte type, int data)
 {
   this->type = type;
@@ -274,7 +320,7 @@ boolean BehaviorTree::deleteChildNode( byte parent, byte node)
 
 
 
-boolean BehaviorTree::deserialize( byte nodeparent, byte* data )
+boolean BehaviorTree::deserialize( byte nodeparent, const byte* data )
 {
  byte nstack[__MAXBTREEDEPTHVISITOR__]; // Max depth de 16
  byte depth = 0;

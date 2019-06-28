@@ -146,6 +146,7 @@ class BehaviorHandler
 {
   BehaviorTree b_tree;
   BehaviorTreeVisitor visitor;
+  BlackBoard blackboard;
 public:
   BehaviorTree* getBehaviorTree();
   boolean ProcessTree( int maxTime );  
@@ -531,10 +532,6 @@ BehaviorHandler bt_handler;
 
 void simpleBTreeInit()
 {
-  // ajoute test delay 
-  // Ajoute test parallel
-  // Implemente Fill dnas le BTree ( stste et priority )
-
   // get handler btree
   BehaviorTree* btPtr = bt_handler.getBehaviorTree();
   btPtr->init();
@@ -553,6 +550,17 @@ void simpleBTreeInit()
   curn = btPtr->addNext( curn, BEHAVE_DEBUGPRINT, 3355 );
 }
 
+const char serializeBTree[] = { 1, 0, 0, 2, 20, 11, 22, 1, 20, 22, 33, -1, 20, 33, 44, 0 };
+
+
+void SimpleDeserializeInit()
+{
+  BehaviorTree* btPtr = bt_handler.getBehaviorTree();
+  btPtr->init();
+
+  btPtr->deserialize(0, serializeBTree);
+}
+
 void setup() {
 
   Serial.begin(57600);
@@ -565,8 +573,10 @@ void setup() {
   simpleBTreeInit();
 }
 
-void loop() {
-  // Read input states of buttons
+
+void testSimpleTree()
+{
+    // Read input states of buttons
   button1.Update();
   button2.Update();
 
@@ -580,4 +590,24 @@ void loop() {
     bt_handler.debugPrint();
     delay(4000);
   }
+}
+
+
+void testDeserialize()
+{
+    SimpleDeserializeInit();
+    bt_handler.debugPrint();
+    delay(4000);
+     for ( int iter = 0; iter < 10; ++iter ) 
+    {
+      bt_handler.ProcessTree(0);
+      bt_handler.debugPrint();
+      delay(4000);
+    }
+}
+
+
+void loop() {
+  // testSimpleTree();
+  testDeserialize();
 }

@@ -74,14 +74,21 @@
 
 #define BEHAVE_NODE_NO_INDEX 255
 
+
+// Blackboard constants
+#define BLACKBOARD_NOKEY 255
+
 class BlackBoard
 {
 protected:
   int elements[__MAXBBELEMENTS__];
-  byte elemstate[__MAXBBELEMENTS__];
+  byte elemKey[__MAXBBELEMENTS__];
+  byte elemState[__MAXBBELEMENTS__];
 public:
+  void init();
   int setNewElement( int value );
   boolean releaseElement( int key);
+  boolean hasKey(int key );
   int get( int key );
   boolean set(int key, int value );
   boolean forceElementValue( int key, int value );
@@ -191,8 +198,6 @@ protected:
   int popFree();
   void PushFree(int idx);
 
-
-
   boolean fillSubNodeState(byte node, byte state);
   boolean fillSubNodePriority(byte node, byte priority);
   
@@ -206,7 +211,7 @@ public:
   int addChild( byte parent, byte type, int data );
   int addNext( byte previous, byte type, int data );
 
-  boolean deserialize( byte nodeparent, byte* data );
+  boolean deserialize( byte nodeparent, const byte* data );
   boolean deserialize_flash(byte nodeparent, byte* data );
 
   boolean fillSubTreeState(byte parent, byte state);
