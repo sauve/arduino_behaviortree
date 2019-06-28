@@ -531,6 +531,10 @@ BehaviorHandler bt_handler;
 
 void simpleBTreeInit()
 {
+  // ajoute test delay 
+  // Ajoute test parallel
+  // Implemente Fill dnas le BTree ( stste et priority )
+
   // get handler btree
   BehaviorTree* btPtr = bt_handler.getBehaviorTree();
   btPtr->init();
@@ -540,8 +544,13 @@ void simpleBTreeInit()
   int selidx = btPtr->addNext( secprint, BEHAVE_SELECTOR, 0 );
   int invidx = btPtr->addChild( selidx, BEHAVE_INVERTER, 0 );
   int curn = btPtr->addChild( invidx, BEHAVE_DEBUGPRINT, 2233 );
-  curn = btPtr->addNext( invidx, BEHAVE_DEBUGPRINT, 3344 );
-  curn = btPtr->addNext( selidx, BEHAVE_DEBUGPRINT, 4455 );
+  int succidx = btPtr->addNext( invidx, BEHAVE_SUCCEEDER, 0 );
+  int failidx = btPtr->addChild( succidx, BEHAVE_FAIL, 0 );
+  curn = btPtr->addChild( failidx, BEHAVE_DEBUGPRINT, 3344 );
+  int paralidx = btPtr->addNext( selidx, BEHAVE_PARALLEL, 0 );
+  curn = btPtr->addChild( paralidx, BEHAVE_DEBUGPRINT, 1155 );
+  curn = btPtr->addNext( curn, BEHAVE_DEBUGPRINT, 2255 );
+  curn = btPtr->addNext( curn, BEHAVE_DEBUGPRINT, 3355 );
 }
 
 void setup() {

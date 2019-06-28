@@ -191,6 +191,11 @@ protected:
   int popFree();
   void PushFree(int idx);
 
+
+
+  boolean fillSubNodeState(byte node, byte state);
+  boolean fillSubNodePriority(byte node, byte priority);
+  
   void deleteNode(byte parent, byte node);
 public:
   void init();
@@ -203,6 +208,9 @@ public:
 
   boolean deserialize( byte nodeparent, byte* data );
   boolean deserialize_flash(byte nodeparent, byte* data );
+
+  boolean fillSubTreeState(byte parent, byte state);
+  boolean fillSubTreePriority(byte parent, byte priority);
 
   // Visitor
   void initVisitor( BehaviorTreeVisitor& visitor );

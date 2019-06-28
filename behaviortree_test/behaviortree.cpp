@@ -332,6 +332,52 @@ boolean BehaviorTree::deserialize_flash(byte nodeparent, byte* data )
 }
 
 
+boolean BehaviorTree::fillSubNodeState(byte node, byte state)
+{
+  this->nodes[node].setState(state);
+  if (this->nodes[node].child != BEHAVE_NODE_NO_INDEX )
+  {
+    this->fillSubNodeState(this->nodes[node].child, state);
+  }
+  if (this->nodes[node].next != BEHAVE_NODE_NO_INDEX )
+  {
+    this->fillSubNodeState(this->nodes[node].next, state);
+  }  
+  return false; 
+}
+
+boolean BehaviorTree::fillSubTreeState(byte parent, byte state)
+{
+  if ( this->nodes[parent].child != BEHAVE_NODE_NO_INDEX )
+  {
+    this->fillSubNodeState(this->nodes[parent].child, state);
+  }
+  return false; 
+}
+
+boolean BehaviorTree::fillSubNodePriority(byte node, byte priority)
+{
+  this->nodes[node].setPriority(priority);
+  if (this->nodes[node].child != BEHAVE_NODE_NO_INDEX )
+  {
+    this->fillSubNodePriority(this->nodes[node].child, priority);
+  }
+  if (this->nodes[node].next != BEHAVE_NODE_NO_INDEX )
+  {
+    this->fillSubNodePriority(this->nodes[node].next, priority);
+  }  
+  return false; 
+}
+
+boolean BehaviorTree::fillSubTreePriority(byte parent, byte priority)
+{
+ if ( this->nodes[parent].child != BEHAVE_NODE_NO_INDEX )
+  {
+    this->fillSubNodePriority(this->nodes[parent].child, priority);
+  }
+  return false;  
+}
+  
 // Visitor
 void BehaviorTree::initVisitor( BehaviorTreeVisitor& visitor )
 {
