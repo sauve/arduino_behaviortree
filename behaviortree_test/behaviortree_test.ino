@@ -550,7 +550,7 @@ void simpleBTreeInit()
   curn = btPtr->addNext( curn, BEHAVE_DEBUGPRINT, 3355 );
 }
 
-const char serializeBTree[] = { 1, 0, 0, 2, 20, 11, 22, 1, 20, 22, 33, -1, 20, 33, 44, 0 };
+const char serializeBTree[] = { 1, 0, 0, 2, 20, 11, 0, 1, 20, 22, 0, -1, 20, 33, 0, 0 };
 
 
 void SimpleDeserializeInit()

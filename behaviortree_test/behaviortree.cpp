@@ -327,8 +327,8 @@ boolean BehaviorTree::deserialize( byte nodeparent, const byte* data )
   
   char* curPtr = (char*)data;
   
-  byte btype = ((byte*)data)[0];
-  int bdata = ((int*)data)[1];
+  byte btype = ((byte*)curPtr)[0];
+  int bdata = ((int*)(curPtr + 1))[1];
   int ret = this->setRoot(btype, bdata);
   int curnode = ret;
   
@@ -339,7 +339,7 @@ boolean BehaviorTree::deserialize( byte nodeparent, const byte* data )
   {
     Serial.println(nextact);
     int btype = ((byte*)curPtr)[0];
-    int bdata = ((int*)curPtr)[1];
+    int bdata = ((int*)(curPtr + 1))[0];
     // si child, push, add child
     if (nextact == 0)
     {
