@@ -300,7 +300,39 @@ boolean BehaviorHandler::Tick_NoType( byte tickType )
 
 boolean BehaviorHandler::Tick_Random( boolean tickType )
 {
+  BehaviorTreeNode* mePtr = this->visitor.current();
   // Select one child at random, execute et return end state
+  if ( this->visitor.current()->getState() == NODE_STATUS_UNTOUCH || this->visitor.current()->getState() == NODE_STATUS_RUNNING)
+  {
+    if ( this->visitor.current()->getState() == NODE_STATUS_UNTOUCH )
+    {
+      //select at random one of the child
+      int maxC = this->visitor.getChildLength();
+      // set child index in data
+      this->visitor.current()->data = random(maxC);
+      Serial.print("selrandom:");
+       Serial.println(this->visitor.current()->data);
+    }
+    mePtr->setState(NODE_STATUS_RUNNING);
+    // move to child in data
+    int childIdx = this->visitor.current()->data;
+    if ( this->visitor.moveToChild(childIdx))
+    {
+      if ( this->visitor.current()->getState() == NODE_STATUS_FAILURE )
+      {
+        mePtr->setState(NODE_STATUS_FAILURE);
+      }
+      else if (  this->visitor.current()->getState() == NODE_STATUS_SUCCESS )
+      {
+        mePtr->setState(NODE_STATUS_SUCCESS);
+      }
+      else
+      {
+        // process
+        this->processNode(tickType);
+      }
+    }
+  }
   this->visitor.moveUp();
   return false;
 }
@@ -551,7 +583,8 @@ void simpleBTreeInit()
 }
 
 const char serializeBTree[] = { 1, 0, 0, 2, 20, 11, 0, 1, 20, 22, 0, -1, 20, 33, 0, 0 };
-
+const PROGMEM char serializeBTree_flash[] = { 1, 0, 0, 2, 20, 11, 0, 1, 20, 22, 0, -1, 20, 33, 0, 0 };
+const PROGMEM char randomBTree_flash[] = { 3, 0, 0, 2, 20, 11, 0, 1, 20, 22, 0, 1, 20, 33, 0, 0 };
 
 void SimpleDeserializeInit()
 {
@@ -560,6 +593,24 @@ void SimpleDeserializeInit()
 
   btPtr->deserialize(0, serializeBTree);
 }
+
+void SimpleDeserializeInitFlash()
+{
+  BehaviorTree* btPtr = bt_handler.getBehaviorTree();
+  btPtr->init();
+
+  btPtr->deserialize_flash(0, serializeBTree_flash);
+}
+
+
+void SimpleDeserializeInitRandom()
+{
+  BehaviorTree* btPtr = bt_handler.getBehaviorTree();
+  btPtr->init();
+
+  btPtr->deserialize_flash(0, randomBTree_flash);
+}
+
 
 void setup() {
 
@@ -595,7 +646,7 @@ void testSimpleTree()
 
 void testDeserialize()
 {
-    SimpleDeserializeInit();
+    SimpleDeserializeInitFlash();
     bt_handler.debugPrint();
     delay(4000);
      for ( int iter = 0; iter < 10; ++iter ) 
@@ -607,7 +658,21 @@ void testDeserialize()
 }
 
 
+void testRandom()
+{
+  SimpleDeserializeInitRandom();
+    bt_handler.debugPrint();
+    delay(4000);
+     for ( int iter = 0; iter < 10; ++iter ) 
+    {
+      bt_handler.ProcessTree(0);
+      bt_handler.debugPrint();
+      delay(4000);
+    }
+}
+
 void loop() {
   // testSimpleTree();
-  testDeserialize();
+  // testDeserialize();
+  testRandom();
 }

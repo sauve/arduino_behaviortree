@@ -183,7 +183,17 @@ boolean BehaviorTreeVisitor::moveDown()
 
 boolean BehaviorTreeVisitor::moveToChild( byte idx )
 {
+  // non optimzed
   // move down then next idx times
+  if ( this->getChildLength() > idx )
+  {
+    this->moveDown();
+    while( idx-- > 0)
+    {
+      this->moveNext();
+    }
+    return true;
+  }
   return false;
 };
 
@@ -200,7 +210,23 @@ boolean BehaviorTreeVisitor::hasChild()
   
 byte BehaviorTreeVisitor::getChildLength()
 {
-  return 0;
+  byte ret = 0;
+  byte currentidx = 0;
+  // if has child, add 1
+  if ( this->hasChild() )
+  {
+      ret += 1;
+      currentidx = this->current()->child;
+      // while has next, add 1, move next
+      while ( this->nodes[currentidx].next != BEHAVE_NODE_NO_INDEX )
+      {
+        ret += 1;
+        currentidx = this->nodes[currentidx].next;
+      }
+  }
+  Serial.print("NbrChild:");
+  Serial.println(ret);
+  return ret;
 }
 
 
@@ -374,7 +400,58 @@ boolean BehaviorTree::deserialize( byte nodeparent, const byte* data )
 
 boolean BehaviorTree::deserialize_flash(byte nodeparent, byte* data )
 {
-  return false;  
+  byte nstack[__MAXBTREEDEPTHVISITOR__]; // Max depth de 16
+ byte depth = 0;
+  byte nextv;
+  char* curPtr = (char*)data;
+  
+  byte btype = pgm_read_byte_near(curPtr);
+  int bdata = pgm_read_word_near(curPtr + 1);
+  int ret = this->setRoot(btype, bdata);
+  int curnode = ret;
+  
+  boolean end = false;
+  int nextact;
+  // ugly cast to have signed byte from pgm_read_byte_near cast into an int
+  nextv = pgm_read_byte_near(curPtr +3);
+  nextact = ((char *)(&nextv))[0];
+  curPtr = curPtr + 4;
+  while( !end )
+  {
+    Serial.println(nextact);
+    int btype = pgm_read_byte_near(curPtr);
+    int bdata = pgm_read_word_near(curPtr + 1);
+    // si child, push, add child
+    if (nextact == 0)
+    {
+      end = true;
+    }
+    else if (nextact == 1)
+    {
+      // add next
+      curnode = this->addNext(curnode, btype, bdata);
+    }
+    else if (nextact == 2)
+    {
+      // push
+      nstack[depth] = curnode;
+      depth += 1;
+      // add child
+      curnode = this->addChild(curnode, btype, bdata);
+    }
+    else if (nextact < 0)
+    {
+      // pop de next hack
+      depth += nextact;
+      curnode = nstack[depth];
+      // add next
+      curnode = this->addNext(curnode, btype, bdata);
+    }
+    nextv = pgm_read_byte_near(curPtr +3);
+    nextact = ((char *)(&nextv))[0];
+    curPtr = curPtr + 4;
+  }
+  return ret;
 }
 
 
