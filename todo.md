@@ -5,7 +5,6 @@ Tracking of simple todos
 ## Arduino code
 
 * Node implementation
-	* Implement Loop by using half of data as nbr other half as variable ( could use blackboard )
 	* Implement delete subtree
 	* Implement proxy node
 	* Optimise Sequence and Selector by usind node data to jump to current child node to run

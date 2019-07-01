@@ -337,7 +337,7 @@ boolean BehaviorHandler::Tick_Random( boolean tickType )
   return false;
 }
 
-  boolean BehaviorHandler::Tick_Parallel( boolean tickType )
+boolean BehaviorHandler::Tick_Parallel( boolean tickType )
 {
   // Start all child, return only when all child end state, Success if all success
     BehaviorTreeNode* mePtr = this->visitor.current();
@@ -370,7 +370,52 @@ boolean BehaviorHandler::Tick_Random( boolean tickType )
 
 boolean BehaviorHandler::Tick_Loop( boolean tickType )
 {
-  // Call child, when end state of child, restart
+  BehaviorTreeNode* mePtr = this->visitor.current();
+  byte meIdx =  this->visitor.getIndex();
+  if ( this->visitor.current()->getState() == NODE_STATUS_UNTOUCH )
+  {
+    // copy lower part of data in hight part
+    int counter = mePtr->data & 0x00FF;
+    mePtr->data = (mePtr->data & 0x00FF) |  (counter << 8);
+    // set status to running  
+    mePtr->setState(NODE_STATUS_RUNNING);
+  }
+  int nbriter = (mePtr->data & 0xFF00) >> 8;
+  if (  mePtr->data != 0 && nbriter == 0 )
+  {
+    // finish ietration  
+    mePtr->setState(NODE_STATUS_SUCCESS);
+  }
+  else
+  {
+   // Call child, when end state of child, restart
+    this->visitor.moveDown(); 
+    if ( this->visitor.current()->getState() == NODE_STATUS_SUCCESS || this->visitor.current()->getState() == NODE_STATUS_FAILURE )
+    {
+      // restart?
+      if ( mePtr->data != 0 )
+      {
+        nbriter -= 1;
+        if ( nbriter > 0 )
+        {
+          this->b_tree.fillSubTreeState( meIdx, NODE_STATUS_UNTOUCH );  
+        }
+        mePtr->data = (mePtr->data & 0x00FF) |  (nbriter << 8);
+      }
+      else
+      {
+         // endless loop
+        this->b_tree.fillSubTreeState( this->visitor.getIndex(), NODE_STATUS_UNTOUCH );   
+      }
+      // no need to process, so return to me
+      this->visitor.moveUp();
+    }
+    else
+    {
+      this->processNode(tickType);
+    }
+  }
+  
   // end stsate when iteration end or never 
   this->visitor.moveUp();
   return false;
@@ -585,6 +630,7 @@ void simpleBTreeInit()
 const char serializeBTree[] = { 1, 0, 0, 2, 20, 11, 0, 1, 20, 22, 0, -1, 20, 33, 0, 0 };
 const PROGMEM char serializeBTree_flash[] = { 1, 0, 0, 2, 20, 11, 0, 1, 20, 22, 0, -1, 20, 33, 0, 0 };
 const PROGMEM char randomBTree_flash[] = { 3, 0, 0, 2, 20, 11, 0, 1, 20, 22, 0, 1, 20, 33, 0, 0 };
+const PROGMEM char LoopBTree_flash[] = { 5, 2, 0, 2, 1, 0, 0, 2, 20, 11, 0, 1, 20, 22, 0, 0 };
 
 void SimpleDeserializeInit()
 {
@@ -611,6 +657,14 @@ void SimpleDeserializeInitRandom()
   btPtr->deserialize_flash(0, randomBTree_flash);
 }
 
+
+void SimpleDeserialiseInit_Loop()
+{
+  BehaviorTree* btPtr = bt_handler.getBehaviorTree();
+  btPtr->init();
+
+  btPtr->deserialize_flash(0, LoopBTree_flash);
+}
 
 void setup() {
 
@@ -671,8 +725,22 @@ void testRandom()
     }
 }
 
+void testLoop()
+{
+  SimpleDeserialiseInit_Loop();
+    bt_handler.debugPrint();
+    delay(4000);
+     for ( int iter = 0; iter < 10; ++iter ) 
+    {
+      bt_handler.ProcessTree(0);
+      bt_handler.debugPrint();
+      delay(4000);
+    }
+}
+
 void loop() {
   // testSimpleTree();
   // testDeserialize();
-  testRandom();
+  //testRandom();
+  testLoop();
 }
