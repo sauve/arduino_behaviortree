@@ -52,6 +52,34 @@ boolean BlackBoard::forceElementValue( int key, int value )
   return false;
 }
 
+void BehaviorBank::init( const byte* sizes, const int* indexes, const char* datas, int total )
+{
+  this->totalElements = total;
+  this->behaviorIndexesSizes = sizes;
+  this->bheaviorIndexes = indexes;
+  this->behaviorDatas = datas;
+}
+
+byte BehaviorBank::getNbrNodes( int idx )
+{
+  byte ret = 0;
+  if ( idx <= this->totalElements )
+  {
+    ret = pgm_read_byte_near( (int * )this->behaviorIndexesSizes + idx );
+  }
+  return ret;
+}
+
+char* BehaviorBank::getDataPtr( int idx )
+{
+   if ( idx <= this->totalElements )
+  {
+    int pos = pgm_read_word_near(this->bheaviorIndexes + (idx * 2 ));
+    return this->behaviorDatas + pos;
+  }
+  return NULL;
+}
+
 
 void BehaviorTreeNode::init( byte type, int data)
 {
@@ -333,7 +361,23 @@ boolean BehaviorTree::deleteChildNode( byte parent, byte node)
   }
   if (this->nodes[node].next != BEHAVE_NODE_NO_INDEX)
   {
-    this->nodes[parent].child = this->nodes[node].next;
+    // start from parent, find previous then relink
+    if ( this->nodes[parent].child == node )
+    {
+      this->nodes[parent].child = this->nodes[node].next;
+    }
+    else
+    {
+      byte curprev = this->nodes[parent].child;
+      while ( this->nodes[curprev].next != node && curprev != BEHAVE_NODE_NO_INDEX )
+      {
+        curprev = this->nodes[curprev].next;
+      }
+      if ( curprev != BEHAVE_NODE_NO_INDEX )
+      {
+        this->nodes[curprev].next = this->nodes[node].next;
+      }
+    }
   }
   else
   {

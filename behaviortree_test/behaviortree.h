@@ -104,6 +104,17 @@ public:
   int data;
 };
 
+class BehaviorBank
+{
+  int totalElements;
+  const byte* behaviorIndexesSizes;
+  const int* bheaviorIndexes;
+  const char* behaviorDatas;
+public:
+  void init( const byte* sizes, const int* indexes, const char* datas, int total );
+  byte getNbrNodes( int idx );
+  char* getDataPtr( int idx );
+};
 
 class BehaviorTreeNode
 {

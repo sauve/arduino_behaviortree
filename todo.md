@@ -5,7 +5,7 @@ Tracking of simple todos
 ## Arduino code
 
 * Node implementation
-	* Implement delete subtree
+	* Deserialize not at root and make another methode for root
 	* Implement proxy node
 	* Optimise Sequence and Selector by usind node data to jump to current child node to run
 * Blackboard

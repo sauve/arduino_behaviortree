@@ -738,9 +738,44 @@ void testLoop()
     }
 }
 
+
+void testDelete()
+{
+  BehaviorTree* btPtr = bt_handler.getBehaviorTree();
+  btPtr->init();
+  int root =  btPtr->setRoot( BEHAVE_SEQUENCE, 0);
+  int firstprint = btPtr->addChild( root, BEHAVE_DEBUGPRINT, 1122 );
+  int secprint = btPtr->addNext( firstprint, BEHAVE_DEBUGPRINT, 2211 );
+  int selidx = btPtr->addNext( secprint, BEHAVE_SELECTOR, 0 );
+  int invidx = btPtr->addChild( selidx, BEHAVE_INVERTER, 0 );
+  int curn = btPtr->addChild( invidx, BEHAVE_DEBUGPRINT, 2233 );
+  int succidx = btPtr->addNext( invidx, BEHAVE_SUCCEEDER, 0 );
+  int failidx = btPtr->addChild( succidx, BEHAVE_FAIL, 0 );
+  curn = btPtr->addChild( failidx, BEHAVE_DEBUGPRINT, 3344 );
+  int paralidx = btPtr->addNext( selidx, BEHAVE_PARALLEL, 0 );
+  curn = btPtr->addChild( paralidx, BEHAVE_DEBUGPRINT, 1155 );
+  curn = btPtr->addNext( curn, BEHAVE_DEBUGPRINT, 2255 );
+  curn = btPtr->addNext( curn, BEHAVE_DEBUGPRINT, 3355 );
+
+  bt_handler.debugPrint();
+  delay(4000);
+  
+  btPtr->deleteChildNode(root, selidx);
+  bt_handler.debugPrint();
+  delay(4000);
+
+  for ( int iter = 0; iter < 10; ++iter ) 
+    {
+      bt_handler.ProcessTree(0);
+      bt_handler.debugPrint();
+      delay(4000);
+    }
+}
+
 void loop() {
   // testSimpleTree();
   // testDeserialize();
   //testRandom();
-  testLoop();
+  //testLoop();
+  testDelete();
 }
