@@ -5,8 +5,6 @@ Tracking of simple todos
 ## Arduino code
 
 * Node implementation
-	* Deserialize not at root and make another methode for root
-	* Implement proxy node
 	* Optimise Sequence and Selector by usind node data to jump to current child node to run
 * Blackboard
 	* manage free 
@@ -20,10 +18,6 @@ Tracking of simple todos
 	* support ticktype for forward/backward traversal
 	* implement yield in control node
 * Tests
-	* Code create and display
-	* Code create and process
-	* Code create and process/delete
-	* Code create and process/delete/proxy
 	* Code create and use blackboard
 	* Code create and use event
 	* Code create and use multiple root with event 

@@ -9,6 +9,13 @@
 // Use led on pin 13 and push buttons on pin A0 and A1
 #include "behaviortree.h"
 
+
+const PROGMEM byte BBankSizes[] = {3, 3};
+const PROGMEM int BBankIndexes[] = { 0, 12 };
+const PROGMEM char BBankData[] = {1, 0, 0, 2, 20, 11, 0, 1, 20, 22, 0, 0, 1, 0, 0, 2, 20, 33, 0, 1, 20, 44, 0, 0};
+
+
+
 class LED
 {
   byte pin;
@@ -147,7 +154,9 @@ class BehaviorHandler
   BehaviorTree b_tree;
   BehaviorTreeVisitor visitor;
   BlackBoard blackboard;
+  BehaviorBank bBank;
 public:
+  void init();
   BehaviorTree* getBehaviorTree();
   boolean ProcessTree( int maxTime );  
   void debugPrint();
@@ -174,6 +183,14 @@ public:
 
   byte processNode(boolean tickType);
 };
+
+
+void BehaviorHandler::init()
+{
+  bBank.init( BBankSizes, BBankIndexes, BBankData, 2 );
+  blackboard.init();
+}
+
 
 BehaviorTree* BehaviorHandler::getBehaviorTree()
 {
@@ -529,9 +546,57 @@ boolean BehaviorHandler::Tick_Delete( boolean tickType )
 
 boolean BehaviorHandler::Tick_Proxy( boolean tickType ) 
 {
+  boolean ret = false;
   // On start deserialise from data value as ID. When child end, take state and delete child
+  BehaviorTreeNode* mePtr = this->visitor.current();
+  int meIdx = this->visitor.getIndex();
+  if ( mePtr->getState() == NODE_STATUS_UNTOUCH)
+  {
+    // deserialize
+    // require BehaviorBank and index in data
+    if ( this->bBank.getNbrNodes(mePtr->data) <= this->b_tree.getFreeNodes() )
+    {
+      char* behavSer = this->bBank.getDataPtr( mePtr->data );
+      if ( this->b_tree.deserialize_flash( this->visitor.getIndex(), behavSer ) == false )
+      {
+        // fail to deserialise
+        mePtr->setState(NODE_STATUS_FAILURE);
+      }
+      else
+      {
+        // set to running
+        mePtr->setState(NODE_STATUS_RUNNING);
+      }
+    }
+    else
+    {
+      mePtr->setState(NODE_STATUS_FAILURE);
+    }
+  }
+  if ( mePtr->getState() == NODE_STATUS_RUNNING)
+  {
+    if ( this->visitor.moveDown() )
+    {
+      BehaviorTreeNode* childPtr = this->visitor.current();
+      
+      // if child success or fail
+      if ( childPtr->getState() == NODE_STATUS_FAILURE || childPtr->getState() == NODE_STATUS_SUCCESS )
+      {
+          byte childIdx = this->visitor.getIndex();
+          this->visitor.moveUp();
+          mePtr->setState(childPtr->getState());
+          this->b_tree.deleteChildNode(meIdx, childIdx);
+          ret = true;
+      }
+      else
+      {
+        // call child process
+        this->processNode(tickType);
+      }
+    }
+  }
   this->visitor.moveUp();
-  return false;
+  return ret;
 }
 
 boolean BehaviorHandler::Tick_DebugPrint( boolean tickType )
@@ -631,13 +696,15 @@ const char serializeBTree[] = { 1, 0, 0, 2, 20, 11, 0, 1, 20, 22, 0, -1, 20, 33,
 const PROGMEM char serializeBTree_flash[] = { 1, 0, 0, 2, 20, 11, 0, 1, 20, 22, 0, -1, 20, 33, 0, 0 };
 const PROGMEM char randomBTree_flash[] = { 3, 0, 0, 2, 20, 11, 0, 1, 20, 22, 0, 1, 20, 33, 0, 0 };
 const PROGMEM char LoopBTree_flash[] = { 5, 2, 0, 2, 1, 0, 0, 2, 20, 11, 0, 1, 20, 22, 0, 0 };
+const PROGMEM char ProxyBTree_flash[] = { 1, 0, 0, 2, 11, 0, 0, 1, 20, 55, 0, 1, 11, 1, 0, 0 };
+
 
 void SimpleDeserializeInit()
 {
   BehaviorTree* btPtr = bt_handler.getBehaviorTree();
   btPtr->init();
 
-  btPtr->deserialize(0, serializeBTree);
+  btPtr->deserialize(serializeBTree);
 }
 
 void SimpleDeserializeInitFlash()
@@ -645,7 +712,7 @@ void SimpleDeserializeInitFlash()
   BehaviorTree* btPtr = bt_handler.getBehaviorTree();
   btPtr->init();
 
-  btPtr->deserialize_flash(0, serializeBTree_flash);
+  btPtr->deserialize_flash(serializeBTree_flash);
 }
 
 
@@ -654,7 +721,7 @@ void SimpleDeserializeInitRandom()
   BehaviorTree* btPtr = bt_handler.getBehaviorTree();
   btPtr->init();
 
-  btPtr->deserialize_flash(0, randomBTree_flash);
+  btPtr->deserialize_flash(randomBTree_flash);
 }
 
 
@@ -663,7 +730,7 @@ void SimpleDeserialiseInit_Loop()
   BehaviorTree* btPtr = bt_handler.getBehaviorTree();
   btPtr->init();
 
-  btPtr->deserialize_flash(0, LoopBTree_flash);
+  btPtr->deserialize_flash(LoopBTree_flash);
 }
 
 void setup() {
@@ -675,6 +742,10 @@ void setup() {
   button2.Init(A1, 0, true);  
 
   // Init Behavior Tree initial state
+  bt_handler.init();
+
+
+  
   simpleBTreeInit();
 }
 
@@ -772,10 +843,28 @@ void testDelete()
     }
 }
 
+
+void testProxy()
+{
+  BehaviorTree* btPtr = bt_handler.getBehaviorTree();
+  btPtr->init();
+
+  btPtr->deserialize_flash(ProxyBTree_flash);
+  bt_handler.debugPrint();
+  delay(4000);
+  for ( int iter = 0; iter < 10; ++iter ) 
+  {
+    bt_handler.ProcessTree(0);
+    bt_handler.debugPrint();
+    delay(4000);
+  }
+}
+
 void loop() {
   // testSimpleTree();
   // testDeserialize();
-  //testRandom();
-  //testLoop();
-  testDelete();
+  // testRandom();
+  // testLoop();
+  // testDelete();
+  testProxy();
 }

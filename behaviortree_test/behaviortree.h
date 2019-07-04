@@ -108,7 +108,7 @@ class BehaviorBank
 {
   int totalElements;
   const byte* behaviorIndexesSizes;
-  const int* bheaviorIndexes;
+  const int* behaviorIndexes;
   const char* behaviorDatas;
 public:
   void init( const byte* sizes, const int* indexes, const char* datas, int total );
@@ -224,7 +224,10 @@ public:
   int addNext( byte previous, byte type, int data );
 
   boolean deserialize( byte nodeparent, const byte* data );
-  boolean deserialize_flash(byte nodeparent, byte* data );
+  boolean deserialize_flash(byte nodeparent, const byte* data );
+
+  boolean deserialize( const byte* data );
+  boolean deserialize_flash( const byte* data );
 
   boolean fillSubTreeState(byte parent, byte state);
   boolean fillSubTreePriority(byte parent, byte priority);

@@ -56,7 +56,7 @@ void BehaviorBank::init( const byte* sizes, const int* indexes, const char* data
 {
   this->totalElements = total;
   this->behaviorIndexesSizes = sizes;
-  this->bheaviorIndexes = indexes;
+  this->behaviorIndexes = indexes;
   this->behaviorDatas = datas;
 }
 
@@ -65,7 +65,9 @@ byte BehaviorBank::getNbrNodes( int idx )
   byte ret = 0;
   if ( idx <= this->totalElements )
   {
-    ret = pgm_read_byte_near( (int * )this->behaviorIndexesSizes + idx );
+    ret = pgm_read_byte_near( this->behaviorIndexesSizes + idx );
+    Serial.print("nbrNodes:");
+    Serial.println(ret);
   }
   return ret;
 }
@@ -74,7 +76,11 @@ char* BehaviorBank::getDataPtr( int idx )
 {
    if ( idx <= this->totalElements )
   {
-    int pos = pgm_read_word_near(this->bheaviorIndexes + (idx * 2 ));
+    int pos = pgm_read_word_near(this->behaviorIndexes + idx);
+    Serial.print("idx:");
+    Serial.print(idx);
+    Serial.print(":pos:");
+    Serial.println(pos);
     return this->behaviorDatas + pos;
   }
   return NULL;
@@ -354,13 +360,19 @@ void BehaviorTree::deleteNode( byte parent, byte node)
 
 boolean BehaviorTree::deleteChildNode( byte parent, byte node)
 {
+  Serial.print("p:");
+  Serial.print(parent);
+  Serial.print(":c:");
+  Serial.println(node);
   //
   if ( this->nodes[node].child != BEHAVE_NODE_NO_INDEX)
   {
+    Serial.println("delchild");
     this->deleteNode(node, this->nodes[node].child);
   }
   if (this->nodes[node].next != BEHAVE_NODE_NO_INDEX)
   {
+    Serial.println("delnext");
     // start from parent, find previous then relink
     if ( this->nodes[parent].child == node )
     {
@@ -381,6 +393,7 @@ boolean BehaviorTree::deleteChildNode( byte parent, byte node)
   }
   else
   {
+    Serial.println("delnonext");
     this->nodes[parent].child = BEHAVE_NODE_NO_INDEX;
   }
   this->nodes[node].clear();
@@ -393,6 +406,114 @@ boolean BehaviorTree::deleteChildNode( byte parent, byte node)
 boolean BehaviorTree::deserialize( byte nodeparent, const byte* data )
 {
  byte nstack[__MAXBTREEDEPTHVISITOR__]; // Max depth de 16
+ byte depth = 0;
+  
+  char* curPtr = (char*)data;
+  
+  byte btype = ((byte*)curPtr)[0];
+  int bdata = ((int*)(curPtr + 1))[1];
+  int ret = this->addChild(nodeparent, btype, bdata);
+  int curnode = ret;
+  
+  boolean end = false;
+  int nextact = curPtr[3];
+  curPtr = curPtr + 4;
+  while( !end )
+  {
+    Serial.println(nextact);
+    int btype = ((byte*)curPtr)[0];
+    int bdata = ((int*)(curPtr + 1))[0];
+    // si child, push, add child
+    if (nextact == 0)
+    {
+      end = true;
+    }
+    else if (nextact == 1)
+    {
+      // add next
+      curnode = this->addNext(curnode, btype, bdata);
+    }
+    else if (nextact == 2)
+    {
+      // push
+      nstack[depth] = curnode;
+      depth += 1;
+      // add child
+      curnode = this->addChild(curnode, btype, bdata);
+    }
+    else if (nextact < 0)
+    {
+      // pop de next hack
+      depth += nextact;
+      curnode = nstack[depth];
+      // add next
+      curnode = this->addNext(curnode, btype, bdata);
+    }
+    nextact = curPtr[3];
+    curPtr = curPtr + 4;
+  }
+  return ret;
+}
+
+boolean BehaviorTree::deserialize_flash(byte nodeparent, const byte* data )
+{
+  byte nstack[__MAXBTREEDEPTHVISITOR__]; // Max depth de 16
+ byte depth = 0;
+  byte nextv;
+  char* curPtr = (char*)data;
+  
+  byte btype = pgm_read_byte_near(curPtr);
+  int bdata = pgm_read_word_near(curPtr + 1);
+  int ret = this->addChild(nodeparent, btype, bdata);
+  int curnode = ret;
+  
+  boolean end = false;
+  int nextact;
+  // ugly cast to have signed byte from pgm_read_byte_near cast into an int
+  nextv = pgm_read_byte_near(curPtr +3);
+  nextact = ((char *)(&nextv))[0];
+  curPtr = curPtr + 4;
+  while( !end )
+  {
+    Serial.println(nextact);
+    int btype = pgm_read_byte_near(curPtr);
+    int bdata = pgm_read_word_near(curPtr + 1);
+    // si child, push, add child
+    if (nextact == 0)
+    {
+      end = true;
+    }
+    else if (nextact == 1)
+    {
+      // add next
+      curnode = this->addNext(curnode, btype, bdata);
+    }
+    else if (nextact == 2)
+    {
+      // push
+      nstack[depth] = curnode;
+      depth += 1;
+      // add child
+      curnode = this->addChild(curnode, btype, bdata);
+    }
+    else if (nextact < 0)
+    {
+      // pop de next hack
+      depth += nextact;
+      curnode = nstack[depth];
+      // add next
+      curnode = this->addNext(curnode, btype, bdata);
+    }
+    nextv = pgm_read_byte_near(curPtr +3);
+    nextact = ((char *)(&nextv))[0];
+    curPtr = curPtr + 4;
+  }
+  return ret;
+}
+
+boolean BehaviorTree::deserialize( const byte* data )
+{
+   byte nstack[__MAXBTREEDEPTHVISITOR__]; // Max depth de 16
  byte depth = 0;
   
   char* curPtr = (char*)data;
@@ -442,7 +563,7 @@ boolean BehaviorTree::deserialize( byte nodeparent, const byte* data )
   return ret;
 }
 
-boolean BehaviorTree::deserialize_flash(byte nodeparent, byte* data )
+boolean BehaviorTree::deserialize_flash( const byte* data )
 {
   byte nstack[__MAXBTREEDEPTHVISITOR__]; // Max depth de 16
  byte depth = 0;
