@@ -19,12 +19,17 @@ void BlackBoard::init()
 
 int BlackBoard::setNewElement( int value )
 {
+  // look for an available index 
+
+  // if OK, random key,  while haskey, key = random
+
+  // return key
   return BLACKBOARD_NOKEY;
 }
 
 boolean BlackBoard::releaseElement( int key)
 {
-  // find key index, set state to none
+  // find key index, set state to none, value to 0 and key to BLACKBOARD_NOKEY
   return false;
 }
 
@@ -66,8 +71,8 @@ byte BehaviorBank::getNbrNodes( int idx )
   if ( idx <= this->totalElements )
   {
     ret = pgm_read_byte_near( this->behaviorIndexesSizes + idx );
-    Serial.print("nbrNodes:");
-    Serial.println(ret);
+    //Serial.print("nbrNodes:");
+    //Serial.println(ret);
   }
   return ret;
 }
@@ -77,10 +82,10 @@ char* BehaviorBank::getDataPtr( int idx )
    if ( idx <= this->totalElements )
   {
     int pos = pgm_read_word_near(this->behaviorIndexes + idx);
-    Serial.print("idx:");
-    Serial.print(idx);
-    Serial.print(":pos:");
-    Serial.println(pos);
+    //Serial.print("idx:");
+    //Serial.print(idx);
+    //Serial.print(":pos:");
+    //Serial.println(pos);
     return this->behaviorDatas + pos;
   }
   return NULL;
@@ -258,8 +263,8 @@ byte BehaviorTreeVisitor::getChildLength()
         currentidx = this->nodes[currentidx].next;
       }
   }
-  Serial.print("NbrChild:");
-  Serial.println(ret);
+  //Serial.print("NbrChild:");
+  //Serial.println(ret);
   return ret;
 }
 
@@ -316,10 +321,10 @@ int BehaviorTree::addChild( byte parent, byte type, int data )
     return ret;
   
   // si pas d'enfant, prend la place, sinon va a la fin des enfants
-  Serial.print("addchild ");
-  Serial.print(ret);
-  Serial.print(" to ");
-  Serial.println(parent);
+  //Serial.print("addchild ");
+  //Serial.print(ret);
+  //Serial.print(" to ");
+  //Serial.println(parent);
   this->nodes[ret].init(type, data);
   this->nodes[ret].next = this->nodes[parent].child;
   this->nodes[parent].child = ret;
@@ -331,10 +336,10 @@ int BehaviorTree::addNext( byte previous, byte type, int data )
   int ret = this->popFree();
   if ( ret < 0)
     return ret;
-  Serial.print("addnext ");
-  Serial.print(ret);
-  Serial.print(" to ");
-  Serial.println(previous);
+  //Serial.print("addnext ");
+  //Serial.print(ret);
+  //Serial.print(" to ");
+  //Serial.println(previous);
   // garde next en memoire, prend la place et set le nouveau avec ancien next
   this->nodes[ret].init( type, data);
   this->nodes[ret].next = this->nodes[previous].next;
@@ -360,19 +365,19 @@ void BehaviorTree::deleteNode( byte parent, byte node)
 
 boolean BehaviorTree::deleteChildNode( byte parent, byte node)
 {
-  Serial.print("p:");
-  Serial.print(parent);
-  Serial.print(":c:");
-  Serial.println(node);
+  //Serial.print("p:");
+  //Serial.print(parent);
+  //Serial.print(":c:");
+  //Serial.println(node);
   //
   if ( this->nodes[node].child != BEHAVE_NODE_NO_INDEX)
   {
-    Serial.println("delchild");
+    //Serial.println("delchild");
     this->deleteNode(node, this->nodes[node].child);
   }
   if (this->nodes[node].next != BEHAVE_NODE_NO_INDEX)
   {
-    Serial.println("delnext");
+    //Serial.println("delnext");
     // start from parent, find previous then relink
     if ( this->nodes[parent].child == node )
     {
@@ -393,7 +398,7 @@ boolean BehaviorTree::deleteChildNode( byte parent, byte node)
   }
   else
   {
-    Serial.println("delnonext");
+    //Serial.println("delnonext");
     this->nodes[parent].child = BEHAVE_NODE_NO_INDEX;
   }
   this->nodes[node].clear();
@@ -420,7 +425,7 @@ boolean BehaviorTree::deserialize( byte nodeparent, const byte* data )
   curPtr = curPtr + 4;
   while( !end )
   {
-    Serial.println(nextact);
+    //Serial.println(nextact);
     int btype = ((byte*)curPtr)[0];
     int bdata = ((int*)(curPtr + 1))[0];
     // si child, push, add child
@@ -457,7 +462,7 @@ boolean BehaviorTree::deserialize( byte nodeparent, const byte* data )
 
 boolean BehaviorTree::deserialize_flash(byte nodeparent, const byte* data )
 {
-  byte nstack[__MAXBTREEDEPTHVISITOR__]; // Max depth de 16
+  byte nstack[__MAXBTREEDEPTHVISITOR__]; // Max depth of 16
  byte depth = 0;
   byte nextv;
   char* curPtr = (char*)data;
@@ -475,7 +480,7 @@ boolean BehaviorTree::deserialize_flash(byte nodeparent, const byte* data )
   curPtr = curPtr + 4;
   while( !end )
   {
-    Serial.println(nextact);
+    //Serial.println(nextact);
     int btype = pgm_read_byte_near(curPtr);
     int bdata = pgm_read_word_near(curPtr + 1);
     // si child, push, add child
@@ -528,7 +533,7 @@ boolean BehaviorTree::deserialize( const byte* data )
   curPtr = curPtr + 4;
   while( !end )
   {
-    Serial.println(nextact);
+    //Serial.println(nextact);
     int btype = ((byte*)curPtr)[0];
     int bdata = ((int*)(curPtr + 1))[0];
     // si child, push, add child
@@ -583,7 +588,7 @@ boolean BehaviorTree::deserialize_flash( const byte* data )
   curPtr = curPtr + 4;
   while( !end )
   {
-    Serial.println(nextact);
+    // Serial.println(nextact);
     int btype = pgm_read_byte_near(curPtr);
     int bdata = pgm_read_word_near(curPtr + 1);
     // si child, push, add child
