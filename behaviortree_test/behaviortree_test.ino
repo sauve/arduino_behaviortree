@@ -8,146 +8,20 @@
 
 // Use led on pin 13 and push buttons on pin A0 and A1
 #include "behaviortree.h"
+#include "controls.h"
 
 
 const PROGMEM byte BBankSizes[] = {3, 3};
 const PROGMEM int BBankIndexes[] = { 0, 12 };
 const PROGMEM char BBankData[] = {1, 0, 0, 2, 20, 11, 0, 1, 20, 22, 0, 0, 1, 0, 0, 2, 20, 33, 0, 1, 20, 44, 0, 0};
 
-
-
-class LED
-{
-  byte pin;
-  byte value;
-  boolean linear;
-public:
-  void Init( byte pin, byte initalValue, boolean linSupport);
-  void setValue(byte value);
-};
-
-void LED::Init( byte pin, byte initalValue, boolean linSupport)
-{
-  
-  this->pin = pin;
-  pinMode(pin, OUTPUT);
-  this->linear = linSupport;
-  this->setValue(initalValue);
-}
-
-void LED::setValue(byte value)
-{
-  this->value = value;
-  if (this->linear )
-  {
-    analogWrite(this->pin, this->value);
-  }
-  else
-  {
-    digitalWrite(this->pin, this->value == 0 ? LOW : HIGH);
-  }
-}
-
-class Button
-{
-  byte pin;
-  int lastValue;
-  int curValue;
-  boolean usePullUp;
-public:
-  void Init(byte pin, int tolerance, boolean pullup);
-  void Update();
-  boolean hasChanged();
-  boolean IsPressed();
-};
-
-void Button::Init(byte pin, int tolerance, boolean pullup)
-{
-  this->pin = pin;
-  this->lastValue = 0;
-  this->curValue = 0;
-  this->usePullUp = pullup;
-  // set le INPUT_PULLUP par defaut, devrait avoir option si pullup est externe
-  if (this->usePullUp)
-  {
-    pinMode(pin, INPUT_PULLUP);
-  }
-  else
-  {
-    pinMode(pin, INPUT);
-  }
-}
-
-void Button::Update()
-{
-  this->lastValue = this->curValue;
-  this->curValue = digitalRead(pin);
-}
-
-boolean Button::hasChanged()
-{
-  return this->lastValue != this->curValue;
-}
-
-boolean Button::IsPressed()
-{
-  if (this->usePullUp)
-  {
-    return this->curValue != LOW;
-  }
-  else
-  {
-    return this->curValue == LOW;
-  }
-}
-
-
-class Alarms
-{
-  unsigned long timers[4];
-public:  
-  Alarms();
-  void setTimer( int idx, long delay );
-  boolean IsTimerReach( int idx );
-};
-
-Alarms::Alarms()
- {
-   timers[0] = 0;
-   timers[1] = 0;
-   timers[2] = 0;
-   timers[3] = 0;
- }
- 
-void Alarms::setTimer( int idx, long delay )
-{
-  if ( idx >=0 && idx <= 3 )
-  {
-    timers[idx] = millis() + delay;
-  }
-}
-
-boolean Alarms::IsTimerReach( int idx )
-{
-  if ( idx >=0 && idx <= 3 )
-  {
-    if (  millis() >= timers[idx])
-    {
-      return true;  
-    }
-  }
-  return false;
-}
-
-
 Button button1, button2;
 LED led1;
-
-
-
+Alarms alamrs;
 
 #define Behavior_SetTimer 40
 #define Behavior_WaitTimer 41
+#define Behavior_SetLED 42
 
 class BehaviorHandler
 {
@@ -162,24 +36,25 @@ public:
   void debugPrint();
 
 
-  boolean Tick_NoType( byte tickType );
-  boolean Tick_Sequence( boolean tickType );
-  boolean Tick_Selector( boolean tickType );
-  boolean Tick_Random( boolean tickType );
-  boolean Tick_Parallel( boolean tickType );
-  boolean Tick_Loop( boolean tickType );
+  byte Tick_NoType( byte tickType );
+  byte Tick_Sequence( boolean tickType );
+  byte Tick_Selector( boolean tickType );
+  byte Tick_Random( boolean tickType );
+  byte Tick_Parallel( boolean tickType );
+  byte Tick_Loop( boolean tickType );
 
   // decorator
-  boolean Tick_Succeeder( boolean tickType );
-  boolean Tick_Inverter( boolean tickType );
-  boolean Tick_Fail( boolean tickType );
-  boolean Tick_Delete( boolean tickType );
-  boolean Tick_Proxy( boolean tickType );
+  byte Tick_Succeeder( boolean tickType );
+  byte Tick_Inverter( boolean tickType );
+  byte Tick_Fail( boolean tickType );
+  byte Tick_Delete( boolean tickType );
+  byte Tick_Proxy( boolean tickType );
 
-  boolean Tick_DebugPrint( boolean tickType );
-  boolean Tick_Delay( boolean tickType );
+  byte Tick_DebugPrint( boolean tickType );
+  byte Tick_Delay( boolean tickType );
 
   // Other custom elements
+  byte Tick_LED( boolean tickType );
 
   byte processNode(boolean tickType);
 };
@@ -218,32 +93,33 @@ void BehaviorHandler::debugPrint()
   b_tree.debugPrint();
 }
 
-boolean BehaviorHandler::Tick_NoType( byte tickType )
+byte BehaviorHandler::Tick_NoType( byte tickType )
 {
+  byte ret = this->visitor.current()->getState();
   // set to SUCCESS
   if (this->visitor.current()->getState() == NODE_STATUS_RUNNING)
   {
     this->visitor.current()->setState(NODE_STATUS_SUCCESS);
     this->visitor.moveUp();
-    return true;
+    return NODE_STATUS_SUCCESS;
   }
   else if (this->visitor.current()->getState() == NODE_STATUS_UNTOUCH)
   {
     this->visitor.current()->setState(NODE_STATUS_RUNNING);
     this->visitor.moveUp();
-    return false;
+    return NODE_STATUS_RUNNING;
   }
   // heu?!
   this->visitor.moveUp();
-  return false;
+  return ret;
 }
 
-  boolean BehaviorHandler::Tick_Sequence( boolean tickType )
+byte BehaviorHandler::Tick_Sequence( boolean tickType )
 {
+  BehaviorTreeNode* mePtr = this->visitor.current();
   // In sequence, start child if not running, continue on ly if Succes
   if (this->visitor.current()->state == NODE_STATUS_UNTOUCH || this->visitor.current()->state == NODE_STATUS_RUNNING)
   {
-    BehaviorTreeNode* mePtr = this->visitor.current();
     mePtr->setState(NODE_STATUS_RUNNING);
     boolean end = false;
     if ( this->visitor.moveDown() )
@@ -272,16 +148,16 @@ boolean BehaviorHandler::Tick_NoType( byte tickType )
       }
     }
   this->visitor.moveUp();
-  return false;
+  return mePtr->getState();
   }
 }
 
-  boolean BehaviorHandler::Tick_Selector( boolean tickType )
+byte BehaviorHandler::Tick_Selector( boolean tickType )
 {
+  BehaviorTreeNode* mePtr = this->visitor.current();
   // In sequence, start child if not running, continue on ly if Fail, stop on Success
   if (this->visitor.current()->state == NODE_STATUS_UNTOUCH || this->visitor.current()->state == NODE_STATUS_RUNNING)
   {
-    BehaviorTreeNode* mePtr = this->visitor.current();
     mePtr->setState(NODE_STATUS_RUNNING);
     boolean end = false;
     if ( this->visitor.moveDown() )
@@ -310,12 +186,11 @@ boolean BehaviorHandler::Tick_NoType( byte tickType )
       }
     }
   this->visitor.moveUp();
-  // 
-  return false;
+  return mePtr->getState();
   }
 }
 
-boolean BehaviorHandler::Tick_Random( boolean tickType )
+byte BehaviorHandler::Tick_Random( boolean tickType )
 {
   BehaviorTreeNode* mePtr = this->visitor.current();
   // Select one child at random, execute et return end state
@@ -327,34 +202,26 @@ boolean BehaviorHandler::Tick_Random( boolean tickType )
       int maxC = this->visitor.getChildLength();
       // set child index in data
       this->visitor.current()->data = random(maxC);
-      Serial.print("selrandom:");
-       Serial.println(this->visitor.current()->data);
+      //Serial.print("selrandom:");
+      //Serial.println(this->visitor.current()->data);
     }
     mePtr->setState(NODE_STATUS_RUNNING);
     // move to child in data
     int childIdx = this->visitor.current()->data;
     if ( this->visitor.moveToChild(childIdx))
     {
-      if ( this->visitor.current()->getState() == NODE_STATUS_FAILURE )
+      byte childStatus = this->processNode(tickType);
+      if ( childStatus == NODE_STATUS_FAILURE || childStatus == NODE_STATUS_SUCCESS )
       {
-        mePtr->setState(NODE_STATUS_FAILURE);
-      }
-      else if (  this->visitor.current()->getState() == NODE_STATUS_SUCCESS )
-      {
-        mePtr->setState(NODE_STATUS_SUCCESS);
-      }
-      else
-      {
-        // process
-        this->processNode(tickType);
+        mePtr->setState(childStatus);
       }
     }
   }
   this->visitor.moveUp();
-  return false;
+  return mePtr->getState();
 }
 
-boolean BehaviorHandler::Tick_Parallel( boolean tickType )
+byte BehaviorHandler::Tick_Parallel( boolean tickType )
 {
   // Start all child, return only when all child end state, Success if all success
     BehaviorTreeNode* mePtr = this->visitor.current();
@@ -382,10 +249,10 @@ boolean BehaviorHandler::Tick_Parallel( boolean tickType )
      mePtr->setState(NODE_STATUS_SUCCESS);
   }
   this->visitor.moveUp();
-  return false;
+  return mePtr->getState();
 }
 
-boolean BehaviorHandler::Tick_Loop( boolean tickType )
+byte BehaviorHandler::Tick_Loop( boolean tickType )
 {
   BehaviorTreeNode* mePtr = this->visitor.current();
   byte meIdx =  this->visitor.getIndex();
@@ -407,7 +274,8 @@ boolean BehaviorHandler::Tick_Loop( boolean tickType )
   {
    // Call child, when end state of child, restart
     this->visitor.moveDown(); 
-    if ( this->visitor.current()->getState() == NODE_STATUS_SUCCESS || this->visitor.current()->getState() == NODE_STATUS_FAILURE )
+    byte childStatus = this->processNode(tickType);
+    if ( childStatus == NODE_STATUS_SUCCESS || childStatus == NODE_STATUS_FAILURE )
     {
       // restart?
       if ( mePtr->data != 0 )
@@ -427,22 +295,17 @@ boolean BehaviorHandler::Tick_Loop( boolean tickType )
       // no need to process, so return to me
       this->visitor.moveUp();
     }
-    else
-    {
-      this->processNode(tickType);
-    }
   }
   
   // end stsate when iteration end or never 
   this->visitor.moveUp();
-  return false;
+  return mePtr->getState();
 }
 
   // decorator
-boolean BehaviorHandler::Tick_Succeeder( boolean tickType )
+byte BehaviorHandler::Tick_Succeeder( boolean tickType )
 {
   // call child, when end state, set to SUCCESS
- boolean ret = false;
   BehaviorTreeNode* mePtr = this->visitor.current();
   if (mePtr->getState() == NODE_STATUS_RUNNING || mePtr->getState() == NODE_STATUS_UNTOUCH)
   {
@@ -450,29 +313,23 @@ boolean BehaviorHandler::Tick_Succeeder( boolean tickType )
     if ( this->visitor.moveDown() )
     {
       // processnode child, if true, set state inverse of child
-      if ( this->visitor.current()->getState() == NODE_STATUS_SUCCESS || this->visitor.current()->getState() == NODE_STATUS_FAILURE)
+      byte childStatus = this->processNode(tickType);
+      if ( childStatus == NODE_STATUS_SUCCESS || childStatus == NODE_STATUS_FAILURE)
       {
         mePtr->setState(NODE_STATUS_SUCCESS);
-        ret = true;
-      }
-      else if (this->visitor.current()->getState() == NODE_STATUS_RUNNING || this->visitor.current()->getState() == NODE_STATUS_UNTOUCH)
-      {
-        this->processNode(tickType);
       }
     }
     else
     {
       mePtr->setState(NODE_STATUS_FAILURE);
-      ret = true;
     }
   }
   this->visitor.moveUp();
-  return ret;
+  return mePtr->getState();
 }
 
-boolean BehaviorHandler::Tick_Inverter( boolean tickType )
+byte BehaviorHandler::Tick_Inverter( boolean tickType )
 {
-  boolean ret = false;
   // when end state of child, inverte success for failure and failure fo success
   BehaviorTreeNode* mePtr = this->visitor.current();
   if (mePtr->getState() == NODE_STATUS_RUNNING || mePtr->getState() == NODE_STATUS_UNTOUCH)
@@ -481,35 +338,29 @@ boolean BehaviorHandler::Tick_Inverter( boolean tickType )
     if ( this->visitor.moveDown() )
     {
       // processnode child, if true, set state inverse of child
-      if ( this->visitor.current()->getState() == NODE_STATUS_SUCCESS)
+      byte childStatus = this->processNode(tickType);
+      if ( childStatus == NODE_STATUS_SUCCESS)
       {
         mePtr->setState(NODE_STATUS_FAILURE);
-        ret = true;
       }
-      else if (this->visitor.current()->getState() == NODE_STATUS_FAILURE )
+      else if (childStatus == NODE_STATUS_FAILURE )
       {
         mePtr->setState(NODE_STATUS_SUCCESS);
-        ret = true;
-      }
-      else if (this->visitor.current()->getState() == NODE_STATUS_RUNNING || this->visitor.current()->getState() == NODE_STATUS_UNTOUCH)
-      {
-        this->processNode(tickType);
       }
     }
     else
     {
       mePtr->setState(NODE_STATUS_FAILURE);
-      ret = true;
     }
   }
   this->visitor.moveUp();
-  return ret;
+  return mePtr->getState();
 }
 
-boolean BehaviorHandler::Tick_Fail( boolean tickType )
+byte BehaviorHandler::Tick_Fail( boolean tickType )
 {
   // when end state of child, set to fail
-  boolean ret = false;
+  byte ret = NODE_STATUS_UNTOUCH;
   BehaviorTreeNode* mePtr = this->visitor.current();
   if (mePtr->getState() == NODE_STATUS_RUNNING || mePtr->getState() == NODE_STATUS_UNTOUCH)
   {
@@ -517,34 +368,29 @@ boolean BehaviorHandler::Tick_Fail( boolean tickType )
     if ( this->visitor.moveDown() )
     {
       // processnode child, if true, set state inverse of child
-      if ( this->visitor.current()->getState() == NODE_STATUS_SUCCESS || this->visitor.current()->getState() == NODE_STATUS_FAILURE)
+      byte childStatus = this->processNode(tickType);
+      if ( childStatus == NODE_STATUS_SUCCESS || childStatus == NODE_STATUS_FAILURE)
       {
         mePtr->setState(NODE_STATUS_FAILURE);
-        ret = true;
-      }
-     else if (this->visitor.current()->getState() == NODE_STATUS_RUNNING || this->visitor.current()->getState() == NODE_STATUS_UNTOUCH)
-      {
-        this->processNode(tickType);
       }
     }
     else
     {
       mePtr->setState(NODE_STATUS_FAILURE);
-      ret = true;
     }
   }
   this->visitor.moveUp();
-  return ret;
+  return mePtr->getState();
 }
 
-boolean BehaviorHandler::Tick_Delete( boolean tickType )
+byte BehaviorHandler::Tick_Delete( boolean tickType )
 {
   // When child reach end state, set state with child then delete all child subtree
   this->visitor.moveUp();
-  return false;
+  return NODE_STATUS_FAILURE;
 }
 
-boolean BehaviorHandler::Tick_Proxy( boolean tickType ) 
+byte BehaviorHandler::Tick_Proxy( boolean tickType ) 
 {
   boolean ret = false;
   // On start deserialise from data value as ID. When child end, take state and delete child
@@ -578,45 +424,53 @@ boolean BehaviorHandler::Tick_Proxy( boolean tickType )
     if ( this->visitor.moveDown() )
     {
       BehaviorTreeNode* childPtr = this->visitor.current();
-      
+      byte childIdx = this->visitor.getIndex();
+      byte childstatus = this->processNode(tickType);
       // if child success or fail
-      if ( childPtr->getState() == NODE_STATUS_FAILURE || childPtr->getState() == NODE_STATUS_SUCCESS )
+      if ( childstatus == NODE_STATUS_FAILURE || childstatus == NODE_STATUS_SUCCESS )
       {
-          byte childIdx = this->visitor.getIndex();
-          this->visitor.moveUp();
-          mePtr->setState(childPtr->getState());
+          mePtr->setState(childstatus);
           this->b_tree.deleteChildNode(meIdx, childIdx);
-          ret = true;
-      }
-      else
-      {
-        // call child process
-        this->processNode(tickType);
       }
     }
   }
   this->visitor.moveUp();
-  return ret;
+  return mePtr->getState();
 }
 
-boolean BehaviorHandler::Tick_DebugPrint( boolean tickType )
+byte BehaviorHandler::Tick_DebugPrint( boolean tickType )
 {
   // Serial print the data value
   Serial.print(F("Debug print node: "));
   Serial.println(this->visitor.current()->data);
   this->visitor.current()->setState(NODE_STATUS_SUCCESS);
+  byte ret = this->visitor.current()->getState();
   this->visitor.moveUp();
-  return false;
+  return ret;
 }
 
-boolean BehaviorHandler::Tick_Delay( boolean tickType )
+byte BehaviorHandler::Tick_Delay( boolean tickType )
 {
   // dey for the duration of the data value
   delay(this->visitor.current()->data);
   this->visitor.current()->setState(NODE_STATUS_SUCCESS);
+  byte ret = this->visitor.current()->getState();
   this->visitor.moveUp();
-  return false;
+  return ret;
 }
+
+
+
+byte BehaviorHandler::Tick_LED( boolean tickType )
+{
+  led1.setValue(this->visitor.current()->data);
+  this->visitor.current()->setState(NODE_STATUS_SUCCESS);
+  byte ret = this->visitor.current()->getState();
+  this->visitor.moveUp();
+  return ret;
+}
+
+
 
 byte BehaviorHandler::processNode(boolean tickType)
 {
@@ -625,45 +479,48 @@ byte BehaviorHandler::processNode(boolean tickType)
   switch ( this->visitor.current()->type )
   {
     case BEHAVE_NOTYPE:
-      this->Tick_NoType(tickType);
+      ret = this->Tick_NoType(tickType);
       break;
     case BEHAVE_SEQUENCE:
-      this->Tick_Sequence(tickType);
+      ret = this->Tick_Sequence(tickType);
       break;
     case BEHAVE_SELECTOR:
-      this->Tick_Selector(tickType);
+      ret = this->Tick_Selector(tickType);
       break;
     case BEHAVE_RANDOM:
-      this->Tick_Random(tickType);
+      ret = this->Tick_Random(tickType);
       break;
     case BEHAVE_PARALLEL:
-      this->Tick_Parallel(tickType);
+      ret = this->Tick_Parallel(tickType);
       break;
     case BEHAVE_LOOP:
-      this->Tick_Loop(tickType);
+      ret = this->Tick_Loop(tickType);
       break;
     case BEHAVE_SUCCEEDER:
-      this->Tick_Succeeder(tickType);
+      ret = this->Tick_Succeeder(tickType);
       break;
     case BEHAVE_INVERTER:
-      this->Tick_Inverter(tickType);
+      ret = this->Tick_Inverter(tickType);
       break;
     case BEHAVE_FAIL:
-      this->Tick_Fail(tickType);
+      ret = this->Tick_Fail(tickType);
       break;
     case BEHAVE_DELETE:
-      this->Tick_Delete(tickType);
+      ret = this->Tick_Delete(tickType);
       break;
     case BEHAVE_PROXY:
-      this->Tick_Proxy(tickType);
+      ret = this->Tick_Proxy(tickType);
       break;
     case BEHAVE_DEBUGPRINT:
-      this->Tick_DebugPrint(tickType);
+      ret = this->Tick_DebugPrint(tickType);
       break;
     case BEHAVE_DELAY:
-      this->Tick_Delay(tickType);
+      ret = this->Tick_Delay(tickType);
       break;
-    // custom value
+    // custom values
+    case Behavior_SetLED:
+      ret = this->Tick_LED(tickType);
+      break;
   }
   
   return ret;  
