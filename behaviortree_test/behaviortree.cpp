@@ -78,9 +78,9 @@ boolean BlackBoard::set(int key, int value )
   {
     if (elemKey[i] == BLACKBOARD_NOKEY )
     {
-      elements[idx] = value;
-      elemKey[idx] = key;
-      elemState[idx] = 1;
+      elements[i] = value;
+      elemKey[i] = key;
+      elemState[i] = 1;
       return true;
     }
   }
@@ -92,6 +92,33 @@ boolean BlackBoard::forceElementValue( int key, int value )
   // find least used or other mnemonic elem to release and set from index
   return false;
 }
+
+void BlackBoard::debugPrint()
+{
+  int free = 0;
+  for ( int i = 0; i < __MAXBBELEMENTS__; ++i )
+  {
+    if (elemKey[i] != BLACKBOARD_NOKEY )
+    {
+      Serial.print(i);
+      Serial.print(" - ");
+      Serial.print(i);
+      Serial.print(elemKey[i]);
+      Serial.print(":");
+      Serial.println(elements[i]);
+    }
+    else
+    {
+      free += 1;
+    }
+  }
+  Serial.print("Total:");
+  Serial.print(__MAXBBELEMENTS__);
+  Serial.print(" free: ");
+  Serial.println(free);
+}
+
+
 
 void BehaviorBank::init( const byte* sizes, const int* indexes, const char* datas, int total )
 {

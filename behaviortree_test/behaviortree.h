@@ -95,6 +95,9 @@ public:
   int get( int key );
   boolean set(int key, int value );
   boolean forceElementValue( int key, int value );
+
+  // debug
+  void debugPrint();
 };
 
 
