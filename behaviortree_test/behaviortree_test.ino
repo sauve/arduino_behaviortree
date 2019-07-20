@@ -717,11 +717,25 @@ void testProxy()
   }
 }
 
+void testBlackBoard()
+{
+  BlackBoard bb;
+  bb.init();
+  bb.set( 15, 25 );
+  bb.set( 8, 1024 );
+  bb.set( 48, 31877);
+  bb.debugPrint();
+  bb.releaseElement(8);
+  bb.debugPrint();
+  // test true or false for method
+}
+
 void loop() {
   // testSimpleTree();
   // testDeserialize();
   // testRandom();
   // testLoop();
   // testDelete();
-  testProxy();
+  // testProxy();
+  testBlackBoard();
 }

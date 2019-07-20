@@ -7,6 +7,19 @@
  
 #include "behaviortree.h"
 
+
+int BlackBoard::getKeyIndex( int key )
+{
+   for ( int i = 0; i < __MAXBBELEMENTS__; ++i )
+  {
+    if (elemKey[i] == key )
+    {
+      return i;
+    }
+  }
+  return -1;
+}
+
 void BlackBoard::init()
 {
   for ( int i = 0; i < __MAXBBELEMENTS__ - 1; ++i )
@@ -30,24 +43,47 @@ int BlackBoard::setNewElement( int value )
 boolean BlackBoard::releaseElement( int key)
 {
   // find key index, set state to none, value to 0 and key to BLACKBOARD_NOKEY
+  int idx = this->getKeyIndex(key);
+  if ( idx >= 0 )
+  {
+    elements[idx] = 0;
+    elemKey[idx] = BLACKBOARD_NOKEY;
+    elemState[idx] = 0;
+    return true;
+  }
   return false;
 }
 
 boolean BlackBoard::hasKey(int key )
 {
   // search for key, return true if found in use
-  return false;
+  return this->getKeyIndex(key) >= 0;
 }
 
 int BlackBoard::get( int key )
 {
   // find key index, return value
+  int idx = this->getKeyIndex(key);
+  if ( idx >= 0)
+  {
+    return elements[idx];
+  }
   return 0;
 }
 
 boolean BlackBoard::set(int key, int value )
 {
   // find free ements index, set key and value
+  for ( int i = 0; i < __MAXBBELEMENTS__; ++i )
+  {
+    if (elemKey[i] == BLACKBOARD_NOKEY )
+    {
+      elements[idx] = value;
+      elemKey[idx] = key;
+      elemState[idx] = 1;
+      return true;
+    }
+  }
   return false;
 }
 

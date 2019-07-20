@@ -22,7 +22,7 @@
 #endif
 
 #ifndef __MAXBBELEMENTS__
-#define __MAXBBELEMENTS__ 16
+#define __MAXBBELEMENTS__ 8
 #endif
 
 #ifndef __MAXBEVENTS__
@@ -85,6 +85,8 @@ protected:
   int elements[__MAXBBELEMENTS__];
   byte elemKey[__MAXBBELEMENTS__];
   byte elemState[__MAXBBELEMENTS__];
+
+  int getKeyIndex( int key );
 public:
   void init();
   int setNewElement( int value );
