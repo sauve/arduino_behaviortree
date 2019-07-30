@@ -727,6 +727,12 @@ void testBlackBoard()
   bb.debugPrint();
   bb.releaseElement(8);
   bb.debugPrint();
+  boolean test = bb.hasKey(8);
+  Serial.print("HasKey:");
+  Serial.println(test);
+  int val = bb.get(15);
+  Serial.print("key 15 = ");
+  Serial.println(val);
   // test true or false for method
 }
 
