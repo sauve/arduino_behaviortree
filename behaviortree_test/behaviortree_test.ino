@@ -734,6 +734,7 @@ void testBlackBoard()
   Serial.print("key 15 = ");
   Serial.println(val);
   // test true or false for method
+  delay(3000);
 }
 
 void loop() {

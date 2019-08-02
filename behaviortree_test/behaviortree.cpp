@@ -22,22 +22,11 @@ int BlackBoard::getKeyIndex( int key )
 
 void BlackBoard::init()
 {
-  for ( int i = 0; i < __MAXBBELEMENTS__ - 1; ++i )
+  for ( int i = 0; i < __MAXBBELEMENTS__; ++i )
   {
     elements[i] = 0;
     elemKey[i] = BLACKBOARD_NOKEY;
-    elemState[i] = 0;
   }
-}
-
-int BlackBoard::setNewElement( int value )
-{
-  // look for an available index 
-
-  // if OK, random key,  while haskey, key = random
-
-  // return key
-  return BLACKBOARD_NOKEY;
 }
 
 boolean BlackBoard::releaseElement( int key)
@@ -48,7 +37,6 @@ boolean BlackBoard::releaseElement( int key)
   {
     elements[idx] = 0;
     elemKey[idx] = BLACKBOARD_NOKEY;
-    elemState[idx] = 0;
     return true;
   }
   return false;
@@ -80,16 +68,9 @@ boolean BlackBoard::set(int key, int value )
     {
       elements[i] = value;
       elemKey[i] = key;
-      elemState[i] = 1;
       return true;
     }
   }
-  return false;
-}
-
-boolean BlackBoard::forceElementValue( int key, int value )
-{
-  // find least used or other mnemonic elem to release and set from index
   return false;
 }
 
@@ -102,7 +83,6 @@ void BlackBoard::debugPrint()
     {
       Serial.print(i);
       Serial.print(" - ");
-      Serial.print(i);
       Serial.print(elemKey[i]);
       Serial.print(":");
       Serial.println(elements[i]);

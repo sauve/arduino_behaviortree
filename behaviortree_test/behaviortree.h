@@ -84,17 +84,14 @@ class BlackBoard
 protected:
   int elements[__MAXBBELEMENTS__];
   byte elemKey[__MAXBBELEMENTS__];
-  byte elemState[__MAXBBELEMENTS__];
 
   int getKeyIndex( int key );
 public:
   void init();
-  int setNewElement( int value );
   boolean releaseElement( int key);
   boolean hasKey(int key );
   int get( int key );
   boolean set(int key, int value );
-  boolean forceElementValue( int key, int value );
 
   // debug
   void debugPrint();
