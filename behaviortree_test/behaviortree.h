@@ -54,6 +54,10 @@
 #define BEHAVE_DELETE 10 // Delete subtree on success
 #define BEHAVE_PROXY 11
 
+// Blackboard 16 - 19
+#define BEHAVE_SETBBVALUE 16
+#define BEHAVE_CLEARBBVALUE 17
+
  // Debug 20 - 24
 #define BEHAVE_DEBUGPRINT 20
 #define BEHAVE_DELAY 21

@@ -50,6 +50,9 @@ public:
   byte Tick_Delete( boolean tickType );
   byte Tick_Proxy( boolean tickType );
 
+  byte Tick_SetBBValue( boolean tickType );
+  byte Tick_ClearBBValue( boolean tickType );
+
   byte Tick_DebugPrint( boolean tickType );
   byte Tick_Delay( boolean tickType );
 
@@ -91,6 +94,7 @@ boolean BehaviorHandler::ProcessTree( int maxTime )
 void BehaviorHandler::debugPrint()
 {
   b_tree.debugPrint();
+  blackboard.debugPrint();
 }
 
 byte BehaviorHandler::Tick_NoType( byte tickType )
@@ -437,6 +441,34 @@ byte BehaviorHandler::Tick_Proxy( boolean tickType )
   this->visitor.moveUp();
   return mePtr->getState();
 }
+  
+byte BehaviorHandler::Tick_SetBBValue( boolean tickType )
+{
+  // Set value(data[0]) at key ( data[1] )
+  byte* bytedata = (byte*)&(this->visitor.current()->data);
+  if ( this->blackboard.set(bytedata[1], bytedata[0]) )
+  {
+    this->visitor.current()->setState(NODE_STATUS_SUCCESS);
+  }
+  else
+  {
+    this->visitor.current()->setState(NODE_STATUS_FAILURE);
+  }
+  byte ret = this->visitor.current()->getState();
+  this->visitor.moveUp();
+  return ret;
+}
+
+byte BehaviorHandler::Tick_ClearBBValue( boolean tickType )
+{
+  // Remove from the blackboard the key data[1]
+  byte* bytedata = (byte*)&(this->visitor.current()->data);
+  this->blackboard.releaseElement(bytedata[1] );
+  this->visitor.current()->setState(NODE_STATUS_SUCCESS);
+  byte ret = this->visitor.current()->getState();
+  this->visitor.moveUp();
+  return ret;
+}
 
 byte BehaviorHandler::Tick_DebugPrint( boolean tickType )
 {
@@ -511,6 +543,12 @@ byte BehaviorHandler::processNode(boolean tickType)
     case BEHAVE_PROXY:
       ret = this->Tick_Proxy(tickType);
       break;
+    case BEHAVE_SETBBVALUE:
+      ret = this->Tick_SetBBValue(tickType);
+      break;
+    case BEHAVE_CLEARBBVALUE:
+      ret = this->Tick_ClearBBValue(tickType);
+      break;
     case BEHAVE_DEBUGPRINT:
       ret = this->Tick_DebugPrint(tickType);
       break;
@@ -554,7 +592,7 @@ const PROGMEM char serializeBTree_flash[] = { 1, 0, 0, 2, 20, 11, 0, 1, 20, 22, 
 const PROGMEM char randomBTree_flash[] = { 3, 0, 0, 2, 20, 11, 0, 1, 20, 22, 0, 1, 20, 33, 0, 0 };
 const PROGMEM char LoopBTree_flash[] = { 5, 2, 0, 2, 1, 0, 0, 2, 20, 11, 0, 1, 20, 22, 0, 0 };
 const PROGMEM char ProxyBTree_flash[] = { 1, 0, 0, 2, 11, 0, 0, 1, 20, 55, 0, 1, 11, 1, 0, 0 };
-
+const PROGMEM char Blackboard_flash[] = { 1, 0, 0, 2, 20, 11, 0, 1, BEHAVE_SETBBVALUE, 10, 3, 1, 20, 22, 0, 1, BEHAVE_CLEARBBVALUE, 0, 3, 1 };
 
 void SimpleDeserializeInit()
 {
@@ -737,6 +775,22 @@ void testBlackBoard()
   delay(3000);
 }
 
+void testBlackboardBehavior()
+{
+   BehaviorTree* btPtr = bt_handler.getBehaviorTree();
+  btPtr->init();
+
+  btPtr->deserialize_flash(Blackboard_flash);
+  bt_handler.debugPrint();
+  delay(4000);
+  for ( int iter = 0; iter < 10; ++iter ) 
+  {
+    bt_handler.ProcessTree(0);
+    bt_handler.debugPrint();
+    delay(4000);
+  }
+}
+
 void loop() {
   // testSimpleTree();
   // testDeserialize();
@@ -744,5 +798,6 @@ void loop() {
   // testLoop();
   // testDelete();
   // testProxy();
-  testBlackBoard();
+  //testBlackBoard();
+  testBlackboardBehavior();
 }
