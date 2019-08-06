@@ -57,13 +57,18 @@
 // Blackboard 16 - 19
 #define BEHAVE_SETBBVALUE 16
 #define BEHAVE_CLEARBBVALUE 17
+#define BEHAVE_WAITFORBBVALUE 18
+#define BEHAVE_HASBBKEY 19
 
  // Debug 20 - 24
 #define BEHAVE_DEBUGPRINT 20
 #define BEHAVE_DELAY 21
 
-// Event 30 - 39
-
+// Event 25 - 29
+#define BEHAVE_WAITFOREVENT 25
+#define BEHAVE_WAITFOREVENTTIMEOUT 26
+#define BEHAVE_INRECENTEVENT 27
+#define BEHAVE_RAISEEVENT 28
 
 // custom actions 40+
 
@@ -107,7 +112,7 @@ class BehaviorEvent
 {
 public:
   byte type;
-  int data;
+  byte data;
 };
 
 class BehaviorBank
@@ -211,6 +216,7 @@ protected:
   byte root;
 
   BehaviorEvent events[__MAXBEVENTS__];
+  int scheduleNodesTimestamp[__MAXBSCHEDULENODE__];
   byte scheduleNodes[__MAXBSCHEDULENODE__];
 
   int popFree();
@@ -222,8 +228,7 @@ protected:
   void deleteNode(byte parent, byte node);
 public:
   void init();
-
-
+  
   int setRoot(byte type, int data);
   // Insertion
   int addChild( byte parent, byte type, int data );
@@ -241,7 +246,6 @@ public:
   // Visitor
   void initVisitor( BehaviorTreeVisitor& visitor );
 
-
   // management
   boolean deleteChildNode( byte parent, byte node);
   byte getFreeNodes()
@@ -249,6 +253,14 @@ public:
     return this->nbrFree;
   }
   void clean();
+
+  // event
+  boolean addEvent( byte type, byte data);
+  
+  // scheduler
+  boolean addScheduleNode( byte idx );
+  boolean removeScheduleNode( byte idx );
+
 
 #ifdef __DEBUG__
   void debugPrintNode(byte node, byte depth);

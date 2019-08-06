@@ -4,6 +4,10 @@ Tracking of simple todos
 
 ## Arduino code
 
+* Handler
+	* Processing time statistic
+	* review debug outout for easy external parsing
+		* header, etc
 * Node implementation
 	* Optimise Sequence and Selector by usind node data to jump to current child node to run
 	* Add simple Blaclboard util node ( setBBValue, clearBBValue )

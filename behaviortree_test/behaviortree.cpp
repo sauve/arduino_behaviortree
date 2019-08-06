@@ -739,6 +739,21 @@ void BehaviorTree::clean()
   return;  
 }
 
+// event
+boolean BehaviorTree::addEvent( byte type, byte data)
+{
+  return false;
+}
+
+boolean BehaviorTree::addScheduleNode( byte idx )
+{
+   return false;
+}
+
+boolean BehaviorTree::removeScheduleNode( byte idx )
+{
+  return false;
+}
 
 #ifdef __DEBUG__
 void BehaviorTree::debugPrintNode(byte node, byte depth)

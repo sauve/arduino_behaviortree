@@ -43,7 +43,7 @@ Contains and managed a finite amount of data slots accessible via a key in a for
 
 Implement node  processing based on the type and data properties.
 
-# Behavior nodes 
+# Standard Behavior nodes 
 
 * Composite
 	* Sequence
@@ -58,8 +58,24 @@ Implement node  processing based on the type and data properties.
 * Blackboard
 	* SetBBValue
 	* ClearBBValue
+	* WaitForBBValue 
+	* HasBBKey
+* Events -- IN DVELOPMENT
+	* WaitForEvent
+	* WaitForEventTimeout
+	* InRecentEvents
+	* RaiseEvent
 * Specialized
 	* Proxy
+
+
+
+# Processing of Event and subtrees
+To help the behavior to respond more quickly and optimse the main traversal, some node can't be triggereg when event are raised.
+
+When a WaitForEvent and WaitForEventTimoeut node are ticked for the first time, they are added in the tree schedular and their status set to NODE_STATUS_EVENTDRIVEN and all compsite and decorator node won't proces them. When an event is added to the tree, a flag is set to process the schedule nodes. This can be call more often than the full tree processing.
+
+These node are a special kind of decorator since they will excecute their children when the event is raised. They can also take the SUCCESS state if no children is set but the event is raised. For the timeout version, it will take the FAILURE state on timeout.
 
 
 

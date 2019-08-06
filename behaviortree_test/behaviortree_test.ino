@@ -50,9 +50,17 @@ public:
   byte Tick_Delete( boolean tickType );
   byte Tick_Proxy( boolean tickType );
 
+  // blackboard
   byte Tick_SetBBValue( boolean tickType );
   byte Tick_ClearBBValue( boolean tickType );
 
+  // event
+  byte Tick_WaitForEvent( boolean tickType );
+  byte Tick_WaitForEventTimeout( boolean tickType );
+  byte Tick_InRecentEvent( boolean tickType );
+  byte Tick_RaiseEvent( boolean tickType );
+
+  // debug
   byte Tick_DebugPrint( boolean tickType );
   byte Tick_Delay( boolean tickType );
 
@@ -470,6 +478,42 @@ byte BehaviorHandler::Tick_ClearBBValue( boolean tickType )
   return ret;
 }
 
+
+  byte BehaviorHandler::Tick_WaitForEvent( boolean tickType )
+  {
+    // should have access to the event ?
+    // this will be called when the event is triggered and by the main tree process if is in the rnning state
+    this->visitor.current()->setState(NODE_STATUS_FAILURE);
+    byte ret = this->visitor.current()->getState();
+    this->visitor.moveUp();
+    return ret;
+  }
+
+  byte BehaviorHandler::Tick_WaitForEventTimeout( boolean tickType )
+  {
+    this->visitor.current()->setState(NODE_STATUS_FAILURE);
+    byte ret = this->visitor.current()->getState();
+    this->visitor.moveUp();
+    return ret;
+  }
+  
+  byte BehaviorHandler::Tick_InRecentEvent( boolean tickType )
+  {
+    this->visitor.current()->setState(NODE_STATUS_FAILURE);
+    byte ret = this->visitor.current()->getState();
+    this->visitor.moveUp();
+    return ret;
+  }
+  
+  byte BehaviorHandler::Tick_RaiseEvent( boolean tickType )
+  {
+    this->visitor.current()->setState(NODE_STATUS_FAILURE);
+    byte ret = this->visitor.current()->getState();
+    this->visitor.moveUp();
+    return ret;
+  }
+  
+
 byte BehaviorHandler::Tick_DebugPrint( boolean tickType )
 {
   // Serial print the data value
@@ -548,6 +592,18 @@ byte BehaviorHandler::processNode(boolean tickType)
       break;
     case BEHAVE_CLEARBBVALUE:
       ret = this->Tick_ClearBBValue(tickType);
+      break;
+    case BEHAVE_WAITFOREVENT:
+      ret = this->Tick_WaitForEvent(tickType);
+      break;
+    case BEHAVE_WAITFOREVENTTIMEOUT:
+      ret = this->Tick_WaitForEventTimeout(tickType);
+      break;
+    case BEHAVE_INRECENTEVENT:
+      ret = this->Tick_InRecentEvent(tickType);
+      break;
+    case BEHAVE_RAISEEVENT:
+      ret = this->Tick_RaiseEvent(tickType);
       break;
     case BEHAVE_DEBUGPRINT:
       ret = this->Tick_DebugPrint(tickType);
