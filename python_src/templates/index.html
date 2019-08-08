@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>Arduino Web connection</title>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+        <script>
+
+function connectArduino()
+{
+    $.ajax({
+       url : '/connect',
+       type : 'GET',
+       dataType : 'text',
+       success : function(rettext, statut){ 
+           console.log("connected");
+       },
+
+       error : function(result, statut, error){
+        console.log("error on connect");
+       }
+
+    });
+}
+
+function disconnectArduino()
+{
+    $.ajax({
+       url : '/disconnect',
+       type : 'GET',
+       dataType : 'text',
+       success : function(rettext, statut){ 
+           console.log("disconected");
+       },
+
+       error : function(result, statut, error){
+        console.log("error on disonnect");
+       }
+
+    });
+}
+
+function updateTerminal()
+{
+    $.ajax({
+       url : '/update',
+       type : 'GET',
+       dataType : 'text',
+       success : function(rettext, statut){ 
+        $("#terminal").append("<br />" + rettext);
+       },
+
+       error : function(result, statut, error){
+        console.log("update error");
+       }
+
+    });
+}
+
+        </script>
+    </head>
+
+    <body>
+        <h1>Arduino Web connection</h1>
+        <button onclick="connectArduino();">Connect</button>
+        <button onclick="disconnectArduino();">Disconnect</button>
+        <button onclick="updateTerminal();">Update</button>
+        <div id="behaviortree">
+            
+        </div>
+        <div id="blackboard">
+            
+            </div>
+        <div id="terminal">
+            
+        </div>
+    </body>
+</html>

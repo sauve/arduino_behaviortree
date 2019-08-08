@@ -7,6 +7,111 @@
  
 #include "behaviortree.h"
 
+SerialJSONWriter::SerialJSONWriter()
+{
+  this->StartWriter();
+}
+
+void SerialJSONWriter::StartWriter()
+{
+  this->arraydepth = 0;
+  this->newObject = true;
+  this->nameWritten = false;
+  this->hadwrittenValue = false;
+}
+
+void SerialJSONWriter::StopWriter()
+{
+  //check for array and object depth
+  Serial.println();
+}
+
+void SerialJSONWriter::WriteObjName( const char* name)
+{
+  if (!this->newObject)
+  {
+    Serial.print(",");
+  }
+  if (this->hadwrittenValue)
+  {
+    Serial.print(",");
+  }
+  Serial.print("\"");
+  Serial.print(name);
+  Serial.print("\": ");
+  this->hadwrittenValue = true;
+  this->nameWritten = true;
+}
+
+void SerialJSONWriter::writeStartArray()
+{
+  Serial.print("[");
+  this->arraydepth++;
+}
+
+void SerialJSONWriter::writeStopArray()
+{
+  Serial.print("]");
+  this->arraydepth--;
+  this->nameWritten = false;
+}
+
+void SerialJSONWriter::writeStringValue( const char* str)
+{
+  // should encode escape caracters
+  Serial.print("\"");
+  Serial.print(str);
+  Serial.print("\"");
+  this->nameWritten = false;
+}
+
+void SerialJSONWriter::writeNumber( int value )
+{
+  Serial.print(value);
+  this->nameWritten = false;
+}
+
+void SerialJSONWriter::writeNumber( byte value )
+{
+  Serial.print(value);
+  this->nameWritten = false;
+}
+
+void SerialJSONWriter::writeNumber( float value )
+{
+  Serial.print(value);
+  this->nameWritten = false;
+}
+
+void SerialJSONWriter::writeBoolean( bool value )
+{
+  Serial.print(value);
+  this->nameWritten = false;
+}
+
+void SerialJSONWriter::writeStartObject()
+{
+   if (!this->nameWritten && !this->newObject )
+   {
+    Serial.print(",");
+   }
+   Serial.print("{");
+   this->newObject = true;
+   this->hadwrittenValue = false;
+}
+
+void SerialJSONWriter::writeStopObject()
+{
+   Serial.print("}");
+   this->newObject = false;
+   this->hadwrittenValue = true;
+   this->nameWritten = false;
+}
+
+
+
+
+
 
 int BlackBoard::getKeyIndex( int key )
 {
@@ -72,6 +177,31 @@ boolean BlackBoard::set(int key, int value )
     }
   }
   return false;
+}
+
+
+
+void BlackBoard::outputJSON(SerialJSONWriter* writer)
+{
+  writer->writeStartObject();
+  writer->WriteObjName("max");
+  writer->writeNumber(__MAXBBELEMENTS__);
+  writer->WriteObjName("elements");
+  writer->writeStartArray();
+  for ( int i = 0; i < __MAXBBELEMENTS__; ++i )
+  {
+    if (elemKey[i] != BLACKBOARD_NOKEY )
+    {
+      writer->writeStartObject();
+      writer->WriteObjName("key");
+      writer->writeNumber(elemKey[i]);
+      writer->WriteObjName("value");
+      writer->writeNumber(elements[i]);
+      writer->writeStopObject();
+    }
+  }
+  writer->writeStopArray();
+  writer->writeStopObject();
 }
 
 void BlackBoard::debugPrint()
@@ -341,6 +471,12 @@ void BehaviorTree::init()
   {
     this->nodes[i].state = BEHAVE_NODE_NO_INDEX;
     this->freeNodes[i] = __MAXBEHAVIORTREENODE__ - 1 - i;
+  }
+  this->oldestEventIdx = 0;
+  for ( int i=0; i< __MAXBEVENTS__; ++i)
+  {
+    this->events[i].type = BEHAVE_NO_EVENT;
+    this->events[i].data = 0;
   }
 }
 
@@ -742,17 +878,57 @@ void BehaviorTree::clean()
 // event
 boolean BehaviorTree::addEvent( byte type, byte data)
 {
+  // add event in a round robin manner
   return false;
 }
 
 boolean BehaviorTree::addScheduleNode( byte idx )
 {
+   // add the index and the timestamp in an available slot
    return false;
 }
 
 boolean BehaviorTree::removeScheduleNode( byte idx )
 {
   return false;
+}
+
+
+void BehaviorTree::outputNodeJSON(SerialJSONWriter* writer, byte NodeIdx)
+{
+  BehaviorTreeNode* nodePtr = &(this->nodes[NodeIdx]);
+  writer->writeStartObject();
+  writer->WriteObjName("type");
+  writer->writeNumber(nodePtr->type);
+  writer->WriteObjName("data");
+  writer->writeNumber(nodePtr->data);
+  writer->WriteObjName("state");
+  writer->writeNumber(nodePtr->getState());
+  writer->WriteObjName("priority");
+  writer->writeNumber(nodePtr->getPriority());
+  if ( nodePtr->hasChild())
+  {
+    writer->WriteObjName("child");
+    writer->writeStartArray();
+    this->outputNodeJSON( writer, nodePtr->child);
+    writer->writeStopArray();
+  }
+   writer->writeStopObject();
+  if ( nodePtr->hasNext())
+  {
+    this->outputNodeJSON( writer, nodePtr->next);
+  }
+ ;
+}
+
+void BehaviorTree::outputJSON( SerialJSONWriter* writer )
+{
+   writer->WriteObjName("behaviortree");
+   writer->writeStartObject();
+   writer->WriteObjName("root");
+   this->outputNodeJSON( writer, this->root);
+   writer->writeStopObject();
+
 }
 
 #ifdef __DEBUG__

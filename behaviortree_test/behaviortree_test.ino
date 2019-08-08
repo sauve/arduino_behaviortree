@@ -23,6 +23,7 @@ Alarms alamrs;
 #define Behavior_WaitTimer 41
 #define Behavior_SetLED 42
 
+
 class BehaviorHandler
 {
   BehaviorTree b_tree;
@@ -32,6 +33,7 @@ class BehaviorHandler
 public:
   void init();
   BehaviorTree* getBehaviorTree();
+  BlackBoard* getBlackBoard();
   boolean ProcessTree( int maxTime );  
   void debugPrint();
 
@@ -82,6 +84,14 @@ BehaviorTree* BehaviorHandler::getBehaviorTree()
 {
   return &b_tree;
 }
+
+
+BlackBoard* BehaviorHandler::getBlackBoard()
+{
+  return &blackboard;
+}
+
+
 
 boolean BehaviorHandler::ProcessTree( int maxTime )
 {
@@ -483,7 +493,46 @@ byte BehaviorHandler::Tick_ClearBBValue( boolean tickType )
   {
     // should have access to the event ?
     // this will be called when the event is triggered and by the main tree process if is in the rnning state
-    this->visitor.current()->setState(NODE_STATUS_FAILURE);
+    BehaviorTreeNode* mePtr = this->visitor.current();
+    switch ( mePtr->getState() )
+    {
+      case NODE_STATUS_UNTOUCH:
+         // add to the scheduler
+        this->b_tree.addScheduleNode( this->visitor.getIndex() );
+        this->visitor.current()->setState(NODE_STATUS_EVENTDRIVEN);
+        break;
+      case NODE_STATUS_EVENTDRIVEN:
+        // triggered by event
+         this->visitor.current()->setState(NODE_STATUS_RUNNING);
+        break;
+    }
+    if (  mePtr->getState() == NODE_STATUS_RUNNING)
+    {
+      // if child, process, if not, return SUCCESS
+      if ( mePtr->hasChild())
+      {
+        // process Child 
+        if ( this->visitor.moveDown() )
+        {
+          // processnode child, if true, set state inverse of child
+          byte childStatus = this->processNode(tickType);
+          if ( childStatus == NODE_STATUS_SUCCESS || childStatus == NODE_STATUS_FAILURE)
+          {
+            mePtr->setState(childStatus);
+          }
+        }
+        else
+        {
+          // unable to go tochild node
+          mePtr->setState(NODE_STATUS_FAILURE);
+        }
+      }
+      else
+      {
+        this->visitor.current()->setState(NODE_STATUS_SUCCESS);
+      }
+    }
+
     byte ret = this->visitor.current()->getState();
     this->visitor.moveUp();
     return ret;
@@ -648,7 +697,7 @@ const PROGMEM char serializeBTree_flash[] = { 1, 0, 0, 2, 20, 11, 0, 1, 20, 22, 
 const PROGMEM char randomBTree_flash[] = { 3, 0, 0, 2, 20, 11, 0, 1, 20, 22, 0, 1, 20, 33, 0, 0 };
 const PROGMEM char LoopBTree_flash[] = { 5, 2, 0, 2, 1, 0, 0, 2, 20, 11, 0, 1, 20, 22, 0, 0 };
 const PROGMEM char ProxyBTree_flash[] = { 1, 0, 0, 2, 11, 0, 0, 1, 20, 55, 0, 1, 11, 1, 0, 0 };
-const PROGMEM char Blackboard_flash[] = { 1, 0, 0, 2, 20, 11, 0, 1, BEHAVE_SETBBVALUE, 10, 3, 1, 20, 22, 0, 1, BEHAVE_CLEARBBVALUE, 0, 3, 1 };
+const PROGMEM char Blackboard_flash[] = { 1, 0, 0, 2, 20, 11, 0, 1, BEHAVE_SETBBVALUE, 10, 3, 1, 20, 22, 0, 1, BEHAVE_CLEARBBVALUE, 0, 3, 0 };
 
 void SimpleDeserializeInit()
 {
@@ -847,6 +896,62 @@ void testBlackboardBehavior()
   }
 }
 
+void testBlackboardJSON()
+{
+  SerialJSONWriter writer;
+  BehaviorTree* btPtr = bt_handler.getBehaviorTree();
+  BlackBoard* bbPtr = bt_handler.getBlackBoard();
+  btPtr->init();
+
+  btPtr->deserialize_flash(Blackboard_flash);
+  writer.StartWriter();
+  btPtr->outputJSON(&writer);
+  writer.StopWriter();
+  writer.StartWriter();
+  bbPtr->outputJSON(&writer);
+  writer.StopWriter();
+  delay(4000);
+  for ( int iter = 0; iter < 10; ++iter ) 
+  {
+    bt_handler.ProcessTree(0);
+    writer.StartWriter();
+    btPtr->outputJSON(&writer);
+    writer.StopWriter();
+    writer.StartWriter();
+    bbPtr->outputJSON(&writer);
+    writer.StopWriter();
+    delay(4000);
+  }
+}
+
+void testSerialJSON()
+{
+  SerialJSONWriter writer;
+
+  writer.WriteObjName("TestObject");
+  writer.writeStartObject();
+  writer.WriteObjName("val1");
+  writer.writeNumber(10);
+  writer.WriteObjName("val2");
+  writer.writeStartArray();
+  writer.writeStartObject();
+  writer.WriteObjName("v1");
+  writer.writeNumber(20);
+  writer.WriteObjName("v2");
+  writer.writeStringValue("a string");
+  writer.writeStopObject();
+  writer.writeStartObject();
+  writer.WriteObjName("v1");
+  writer.writeNumber(30);
+  writer.WriteObjName("v2");
+  writer.writeStringValue("another string");
+  writer.writeStopObject();
+  writer.writeStopArray();
+  writer.writeStopObject();
+
+  delay(4000);
+}
+
 void loop() {
   // testSimpleTree();
   // testDeserialize();
@@ -855,5 +960,6 @@ void loop() {
   // testDelete();
   // testProxy();
   //testBlackBoard();
-  testBlackboardBehavior();
+  // testBlackboardBehavior();
+  testBlackboardJSON();
 }

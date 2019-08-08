@@ -85,6 +85,36 @@
 #define BEHAVE_NODE_NO_INDEX 255
 
 
+// events
+#define BEHAVE_NO_EVENT 0
+
+
+
+class SerialJSONWriter
+{
+protected:
+  boolean newObject;
+  boolean nameWritten;
+  int arraydepth;
+  boolean hadwrittenValue;
+public:
+  SerialJSONWriter();
+
+  void StartWriter();
+  void StopWriter();
+  void WriteObjName( const char* name);
+  void writeStartArray();
+  void writeStopArray();
+  void writeStringValue( const char* str);
+  void writeNumber( int value );
+  void writeNumber( byte value );
+  void writeNumber( float value );
+  void writeBoolean( bool value );
+  void writeStartObject();
+  void writeStopObject();
+};
+
+
 // Blackboard constants
 #define BLACKBOARD_NOKEY 255
 
@@ -101,6 +131,8 @@ public:
   boolean hasKey(int key );
   int get( int key );
   boolean set(int key, int value );
+
+  void outputJSON(SerialJSONWriter* writer);
 
   // debug
   void debugPrint();
@@ -140,6 +172,16 @@ public:
 
   void init( byte type, int data);
   void clear();
+
+  boolean hasChild()
+  {
+    return this->child != BEHAVE_NODE_NO_INDEX;
+  }
+
+  boolean hasNext()
+  {
+     return this->next != BEHAVE_NODE_NO_INDEX;
+  }
 
   byte getState()
   {
@@ -216,6 +258,7 @@ protected:
   byte root;
 
   BehaviorEvent events[__MAXBEVENTS__];
+  byte oldestEventIdx;
   int scheduleNodesTimestamp[__MAXBSCHEDULENODE__];
   byte scheduleNodes[__MAXBSCHEDULENODE__];
 
@@ -226,6 +269,8 @@ protected:
   boolean fillSubNodePriority(byte node, byte priority);
   
   void deleteNode(byte parent, byte node);
+
+  void outputNodeJSON(SerialJSONWriter* writer, byte NodeIdx);
 public:
   void init();
   
@@ -261,6 +306,7 @@ public:
   boolean addScheduleNode( byte idx );
   boolean removeScheduleNode( byte idx );
 
+  void outputJSON( SerialJSONWriter* writer );
 
 #ifdef __DEBUG__
   void debugPrintNode(byte node, byte depth);

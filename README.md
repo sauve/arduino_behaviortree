@@ -77,6 +77,10 @@ When a WaitForEvent and WaitForEventTimoeut node are ticked for the first time, 
 
 These node are a special kind of decorator since they will excecute their children when the event is raised. They can also take the SUCCESS state if no children is set but the event is raised. For the timeout version, it will take the FAILURE state on timeout.
 
+# Serial communication
+
+If a new line start with ", it is considered the start of a json object. If there isn't a : and { on the same line, than the object is rejected and will wait for the beginning of another
+
 
 
 
