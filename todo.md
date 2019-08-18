@@ -10,7 +10,6 @@ Tracking of simple todos
 		* header, etc
 * Node implementation
 	* Optimise Sequence and Selector by usind node data to jump to current child node to run
-	* Add simple Blaclboard util node ( setBBValue, clearBBValue )
 * Blackboard
 	* manage free 
 * Event
@@ -21,10 +20,14 @@ Tracking of simple todos
 * Pre-emptive
 	* support ticktype for forward/backward traversal
 	* implement yield in control node
+* Serialization
+	* Externalize serialization in JSON from the basic class ( create writer)
+	* Switch to JSONSerialWriter library when available
 * Tests
 	* Code create and use blackboard
 	* Code create and use event
 	* Code create and use multiple root with event 
+
 ## Python code
 
 * Simple BehaveNode with getData and getType for arduino
