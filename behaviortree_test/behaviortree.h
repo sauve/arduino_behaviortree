@@ -10,6 +10,9 @@
 
 #include <Arduino.h>
 
+// until serializer isn't external to the tree
+#include "serialjsonwriter.h"
+
 #define __DEBUG__
 
 
@@ -87,32 +90,6 @@
 
 // events
 #define BEHAVE_NO_EVENT 0
-
-
-
-class SerialJSONWriter
-{
-protected:
-  boolean newObject;
-  boolean nameWritten;
-  int arraydepth;
-  boolean hadwrittenValue;
-public:
-  SerialJSONWriter();
-
-  void StartWriter();
-  void StopWriter();
-  void WriteObjName( const char* name);
-  void writeStartArray();
-  void writeStopArray();
-  void writeStringValue( const char* str);
-  void writeNumber( int value );
-  void writeNumber( byte value );
-  void writeNumber( float value );
-  void writeBoolean( bool value );
-  void writeStartObject();
-  void writeStopObject();
-};
 
 
 // Blackboard constants
