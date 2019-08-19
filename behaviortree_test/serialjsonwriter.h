@@ -23,9 +23,11 @@ public:
   void StartWriter();
   void StopWriter();
   void WriteObjName( const char* name);
+  void WriteObjName( const __FlashStringHelper* name);
   void writeStartArray();
   void writeStopArray();
   void writeStringValue( const char* str);
+  void writeStringValue( const __FlashStringHelper* str);
   void writeNumber( int value );
   void writeNumber( byte value );
   void writeNumber( float value );
