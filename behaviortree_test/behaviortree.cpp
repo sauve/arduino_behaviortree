@@ -773,17 +773,72 @@ void BehaviorTree::clean()
 boolean BehaviorTree::addEvent( byte type, byte data)
 {
   // add event in a round robin manner
+  this->events[oldestEventIdx].type = type;
+  this->events[oldestEventIdx].data = data;
+
+  // should trigger something so the handler can call the correct schedule node
+  for ( int i=0; i< __MAXBSCHEDULENODE__; ++i)
+  {
+    // if idx is valid, call check for triggeer with current event
+    if ( this->scheduleNodes[i] != BEHAVE_NODE_NO_INDEX)
+    {
+      this-isTriggeredByEvent(i, oldestEventIdx);
+    }
+  }
+
+  oldestEventIdx += 1;
+  if ( oldestEventIdx >= __MAXBEVENTS__ )
+  {
+    oldestEventIdx = 0;
+  }
+  return true;
+}
+
+boolean BehaviorTree::isTriggeredByEvent( byte nodeIdx, byte eventIdx )
+{
+  // check node type
+  swtich( this->[nodes].type )
+  {
+    case BEHAVE_WAITFOREVENT:
+      // check if event type and data match
+      // if so, set status to NODE_STATUS_EVENTRAISED
+      break;
+    case BEHAVE_WAITFOREVENTTIMEOUT:
+      // check if timeout period achieve
+      // if not, check if event match
+      break;
+  }
+
   return false;
 }
 
 boolean BehaviorTree::addScheduleNode( byte idx )
 {
    // add the index and the timestamp in an available slot
-   return false;
+  for ( int i=0; i< __MAXBSCHEDULENODE__; ++i)
+  {
+    if ( this->scheduleNodes[i] == BEHAVE_NODE_NO_INDEX)
+    {
+      this->scheduleNodes[i] = idx;
+      this->scheduleNodesTimestamp[i] = milis();
+    }
+    return true;
+  }
+  // not enough available slot
+  return false;
 }
 
 boolean BehaviorTree::removeScheduleNode( byte idx )
 {
+  for ( int i=0; i< __MAXBSCHEDULENODE__; ++i)
+  {
+    if ( this->scheduleNodes[i] == idx )
+    {
+      this->scheduleNodes[i] = BEHAVE_NODE_NO_INDEX;
+    }
+    return true;
+  }
+  // unable to find idx in the list
   return false;
 }
 

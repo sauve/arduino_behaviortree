@@ -84,6 +84,7 @@
 #define NODE_STATUS_RUNNING 3
 #define NODE_STATUS_DELETE 4
 #define NODE_STATUS_EVENTDRIVEN 5
+#define NODE_STATUS_EVENTRAISED 6
 
 #define BEHAVE_NODE_NO_INDEX 255
 
@@ -278,6 +279,7 @@ public:
 
   // event
   boolean addEvent( byte type, byte data);
+  boolean isTriggeredByEvent( byte nodeIdx, byte eventIdx );
   
   // scheduler
   boolean addScheduleNode( byte idx );
