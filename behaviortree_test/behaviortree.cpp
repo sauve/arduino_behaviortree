@@ -797,7 +797,7 @@ boolean BehaviorTree::addEvent( byte type, byte data)
 boolean BehaviorTree::isTriggeredByEvent( byte nodeIdx, byte eventIdx )
 {
   // check node type
-  swtich( this->[nodes].type )
+  switch( this->nodes[nodeIdx].type )
   {
     case BEHAVE_WAITFOREVENT:
       // check if event type and data match
@@ -820,7 +820,7 @@ boolean BehaviorTree::addScheduleNode( byte idx )
     if ( this->scheduleNodes[i] == BEHAVE_NODE_NO_INDEX)
     {
       this->scheduleNodes[i] = idx;
-      this->scheduleNodesTimestamp[i] = milis();
+      this->scheduleNodesTimestamp[i] = millis();
     }
     return true;
   }

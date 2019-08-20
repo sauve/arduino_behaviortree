@@ -139,8 +139,9 @@ byte BehaviorHandler::Tick_NoType( byte tickType )
 byte BehaviorHandler::Tick_Sequence( boolean tickType )
 {
   BehaviorTreeNode* mePtr = this->visitor.current();
+  byte curstate = mePtr->getState();
   // In sequence, start child if not running, continue on ly if Succes
-  if (this->visitor.current()->state == NODE_STATUS_UNTOUCH || this->visitor.current()->state == NODE_STATUS_RUNNING)
+  if (curstate== NODE_STATUS_UNTOUCH || curstate == NODE_STATUS_RUNNING)
   {
     mePtr->setState(NODE_STATUS_RUNNING);
     boolean end = false;
@@ -148,7 +149,35 @@ byte BehaviorHandler::Tick_Sequence( boolean tickType )
     {
       while( !end )
       {
-        if ( this->visitor.current()->getState() == NODE_STATUS_UNTOUCH || this->visitor.current()->getState() == NODE_STATUS_RUNNING )
+        curstate = this->visitor.current()->getState();
+        switch( curstate )
+        {
+          case NODE_STATUS_EVENTDRIVEN:
+            // Wait to be triggered by event or timeout
+            end = true;
+            break;
+          case NODE_STATUS_UNTOUCH:
+          case NODE_STATUS_RUNNING:
+          case NODE_STATUS_EVENTRAISED:
+            this->processNode(tickType);
+            end = true;
+            break;
+          case NODE_STATUS_SUCCESS:
+            end = !this->visitor.moveNext();
+            if ( end )
+            {
+              // if seuqnece at end and all success, set state success
+              mePtr->setState(NODE_STATUS_SUCCESS);
+            }
+            break;
+          default:
+            end = true;
+            mePtr->setState(NODE_STATUS_FAILURE);
+            break;
+        }
+
+
+       /*  if ( this->visitor.current()->getState() == NODE_STATUS_UNTOUCH || this->visitor.current()->getState() == NODE_STATUS_RUNNING )
         {
           this->processNode(tickType);
           end = true;
@@ -166,7 +195,7 @@ byte BehaviorHandler::Tick_Sequence( boolean tickType )
         {
           end = true;
           mePtr->setState(NODE_STATUS_FAILURE);
-        }
+        } */
       }
     }
   this->visitor.moveUp();
@@ -177,8 +206,9 @@ byte BehaviorHandler::Tick_Sequence( boolean tickType )
 byte BehaviorHandler::Tick_Selector( boolean tickType )
 {
   BehaviorTreeNode* mePtr = this->visitor.current();
+  byte curstate = mePtr->getState();
   // In sequence, start child if not running, continue on ly if Fail, stop on Success
-  if (this->visitor.current()->state == NODE_STATUS_UNTOUCH || this->visitor.current()->state == NODE_STATUS_RUNNING)
+  if (curstate == NODE_STATUS_UNTOUCH || curstate == NODE_STATUS_RUNNING)
   {
     mePtr->setState(NODE_STATUS_RUNNING);
     boolean end = false;
@@ -186,7 +216,32 @@ byte BehaviorHandler::Tick_Selector( boolean tickType )
     {
       while( !end )
       {
-        if ( this->visitor.current()->getState() == NODE_STATUS_UNTOUCH || this->visitor.current()->getState() == NODE_STATUS_RUNNING )
+        curstate = this->visitor.current()->getState();
+        switch( curstate )
+        {
+          case NODE_STATUS_EVENTDRIVEN:
+            // Wait to be triggered by event or timeout
+            end = true;
+            break;
+          case NODE_STATUS_UNTOUCH:
+          case NODE_STATUS_RUNNING:
+          case NODE_STATUS_EVENTRAISED:
+             this->processNode(tickType);
+            end = true;
+            break;
+          case NODE_STATUS_FAILURE:
+            end = !this->visitor.moveNext();
+            if ( end )
+            {
+              // if seuqnece at end and all success, set state success
+              mePtr->setState(NODE_STATUS_FAILURE);
+            }
+            break;
+          default:
+            mePtr->setState(NODE_STATUS_SUCCESS);
+            end = true;
+            break;
+        /* if ( this->visitor.current()->getState() == NODE_STATUS_UNTOUCH || this->visitor.current()->getState() == NODE_STATUS_RUNNING )
         {
           this->processNode(tickType);
           end = true;
@@ -204,6 +259,7 @@ byte BehaviorHandler::Tick_Selector( boolean tickType )
         {
           mePtr->setState(NODE_STATUS_SUCCESS);
           end = true;
+        } */
         }
       }
     }
@@ -960,6 +1016,6 @@ void loop() {
   // testDelete();
   // testProxy();
   //testBlackBoard();
-  // testBlackboardBehavior();
-  testBlackboardJSON();
+  testBlackboardBehavior();
+  // testBlackboardJSON();
 }
