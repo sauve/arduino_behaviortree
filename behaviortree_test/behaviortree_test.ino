@@ -35,6 +35,7 @@ public:
   BehaviorTree* getBehaviorTree();
   BlackBoard* getBlackBoard();
   boolean ProcessTree( int maxTime );  
+  boolean ProcessScheduler();
   void debugPrint();
 
 
@@ -99,7 +100,7 @@ boolean BehaviorHandler::ProcessTree( int maxTime )
   boolean canNext = true;
   while( canNext )
   {
-    if ( visitor.current()->getState() == NODE_STATUS_UNTOUCH || visitor.current()->getState() == NODE_STATUS_RUNNING )
+    if ( visitor.current()->getState() == NODE_STATUS_UNTOUCH || visitor.current()->getState() == NODE_STATUS_RUNNING || visitor.current()->getState() == NODE_STATUS_EVENTRAISED )
     {
       this->processNode( false );
     }
@@ -108,6 +109,13 @@ boolean BehaviorHandler::ProcessTree( int maxTime )
   return false;
 }
 
+
+boolean BehaviorHandler::ProcessScheduler()
+{
+  // for each node in the schedular with RAISED_EVENT status
+  // process this node as root with no next  
+  return false;
+}
 
 void BehaviorHandler::debugPrint()
 {
@@ -119,13 +127,13 @@ byte BehaviorHandler::Tick_NoType( byte tickType )
 {
   byte ret = this->visitor.current()->getState();
   // set to SUCCESS
-  if (this->visitor.current()->getState() == NODE_STATUS_RUNNING)
+  if (ret == NODE_STATUS_RUNNING)
   {
     this->visitor.current()->setState(NODE_STATUS_SUCCESS);
     this->visitor.moveUp();
     return NODE_STATUS_SUCCESS;
   }
-  else if (this->visitor.current()->getState() == NODE_STATUS_UNTOUCH)
+  else if (ret == NODE_STATUS_UNTOUCH)
   {
     this->visitor.current()->setState(NODE_STATUS_RUNNING);
     this->visitor.moveUp();
@@ -175,27 +183,6 @@ byte BehaviorHandler::Tick_Sequence( boolean tickType )
             mePtr->setState(NODE_STATUS_FAILURE);
             break;
         }
-
-
-       /*  if ( this->visitor.current()->getState() == NODE_STATUS_UNTOUCH || this->visitor.current()->getState() == NODE_STATUS_RUNNING )
-        {
-          this->processNode(tickType);
-          end = true;
-        }
-        else if (this->visitor.current()->getState() == NODE_STATUS_SUCCESS)
-        {
-          end = !this->visitor.moveNext();
-          if ( end )
-          {
-            // if seuqnece at end and all success, set state success
-            mePtr->setState(NODE_STATUS_SUCCESS);
-          }
-        }
-        else
-        {
-          end = true;
-          mePtr->setState(NODE_STATUS_FAILURE);
-        } */
       }
     }
   this->visitor.moveUp();
@@ -221,12 +208,13 @@ byte BehaviorHandler::Tick_Selector( boolean tickType )
         {
           case NODE_STATUS_EVENTDRIVEN:
             // Wait to be triggered by event or timeout
+            this->visitor.moveUp();
             end = true;
             break;
           case NODE_STATUS_UNTOUCH:
           case NODE_STATUS_RUNNING:
           case NODE_STATUS_EVENTRAISED:
-             this->processNode(tickType);
+            this->processNode(tickType);
             end = true;
             break;
           case NODE_STATUS_FAILURE:
@@ -241,25 +229,6 @@ byte BehaviorHandler::Tick_Selector( boolean tickType )
             mePtr->setState(NODE_STATUS_SUCCESS);
             end = true;
             break;
-        /* if ( this->visitor.current()->getState() == NODE_STATUS_UNTOUCH || this->visitor.current()->getState() == NODE_STATUS_RUNNING )
-        {
-          this->processNode(tickType);
-          end = true;
-        }
-        else if (this->visitor.current()->getState() == NODE_STATUS_FAILURE)
-        {
-          end = !this->visitor.moveNext();
-          if ( end )
-          {
-            // if seuqnece at end and all success, set state success
-            mePtr->setState(NODE_STATUS_FAILURE);
-          }
-        }
-        else
-        {
-          mePtr->setState(NODE_STATUS_SUCCESS);
-          end = true;
-        } */
         }
       }
     }
@@ -271,10 +240,11 @@ byte BehaviorHandler::Tick_Selector( boolean tickType )
 byte BehaviorHandler::Tick_Random( boolean tickType )
 {
   BehaviorTreeNode* mePtr = this->visitor.current();
+  byte curstate = mePtr->getState();
   // Select one child at random, execute et return end state
-  if ( this->visitor.current()->getState() == NODE_STATUS_UNTOUCH || this->visitor.current()->getState() == NODE_STATUS_RUNNING)
+  if ( curstate == NODE_STATUS_UNTOUCH || curstate == NODE_STATUS_RUNNING)
   {
-    if ( this->visitor.current()->getState() == NODE_STATUS_UNTOUCH )
+    if ( curstate == NODE_STATUS_UNTOUCH )
     {
       //select at random one of the child
       int maxC = this->visitor.getChildLength();
@@ -288,10 +258,28 @@ byte BehaviorHandler::Tick_Random( boolean tickType )
     int childIdx = this->visitor.current()->data;
     if ( this->visitor.moveToChild(childIdx))
     {
-      byte childStatus = this->processNode(tickType);
-      if ( childStatus == NODE_STATUS_FAILURE || childStatus == NODE_STATUS_SUCCESS )
+      // getstate, if eventdriven, do nothing, else process and check return
+      byte childStatus = this->visitor.current()->getState();
+      switch( childStatus )
       {
-        mePtr->setState(childStatus);
+        case NODE_STATUS_EVENTDRIVEN:
+          // no process since waiting for event
+          this->visitor.moveUp();
+          break;
+        case NODE_STATUS_EVENTRAISED:
+        case NODE_STATUS_UNTOUCH:
+        case NODE_STATUS_RUNNING:
+          childStatus = this->processNode(tickType);
+          if ( childStatus == NODE_STATUS_FAILURE || childStatus == NODE_STATUS_SUCCESS )
+          {
+            mePtr->setState(childStatus);
+          }
+          break;
+        case NODE_STATUS_FAILURE:
+        case NODE_STATUS_SUCCESS:
+            mePtr->setState(childStatus);
+            this->visitor.moveUp();
+            break;
       }
     }
   }
@@ -310,10 +298,17 @@ byte BehaviorHandler::Tick_Parallel( boolean tickType )
     {
       while( !end )
       {
-        if ( this->visitor.current()->getState() == NODE_STATUS_UNTOUCH || this->visitor.current()->getState() == NODE_STATUS_RUNNING )
+        // if eventdriven nedd proce, if wiatforvent, do nothing, use switch
+        if ( this->visitor.current()->getState() == NODE_STATUS_EVENTRAISED || this->visitor.current()->getState() == NODE_STATUS_UNTOUCH || this->visitor.current()->getState() == NODE_STATUS_RUNNING )
         {
           oneRunning = true;
           this->processNode(tickType);
+          end = !this->visitor.moveNext();
+        }
+        else if (this->visitor.current()->getState() == NODE_STATUS_EVENTDRIVEN )
+        {
+          // don't process node waiting for event but count it has runnning
+          oneRunning = true;
           end = !this->visitor.moveNext();
         }
         else
@@ -330,6 +325,7 @@ byte BehaviorHandler::Tick_Parallel( boolean tickType )
   return mePtr->getState();
 }
 
+// TODO: Event suport
 byte BehaviorHandler::Tick_Loop( boolean tickType )
 {
   BehaviorTreeNode* mePtr = this->visitor.current();
@@ -352,6 +348,7 @@ byte BehaviorHandler::Tick_Loop( boolean tickType )
   {
    // Call child, when end state of child, restart
     this->visitor.moveDown(); 
+    // check current state, if can process then process, after set state
     byte childStatus = this->processNode(tickType);
     if ( childStatus == NODE_STATUS_SUCCESS || childStatus == NODE_STATUS_FAILURE )
     {
@@ -391,10 +388,26 @@ byte BehaviorHandler::Tick_Succeeder( boolean tickType )
     if ( this->visitor.moveDown() )
     {
       // processnode child, if true, set state inverse of child
-      byte childStatus = this->processNode(tickType);
-      if ( childStatus == NODE_STATUS_SUCCESS || childStatus == NODE_STATUS_FAILURE)
+      byte childStatus = this->visitor.current()->getState();
+      switch(childStatus )
       {
-        mePtr->setState(NODE_STATUS_SUCCESS);
+        case NODE_STATUS_EVENTDRIVEN:
+          this->visitor.moveUp();
+          break;
+        case NODE_STATUS_EVENTRAISED:
+        case NODE_STATUS_RUNNING:
+        case NODE_STATUS_UNTOUCH:
+          childStatus = this->processNode(tickType);
+          if ( childStatus == NODE_STATUS_SUCCESS || childStatus == NODE_STATUS_FAILURE)
+          {
+            mePtr->setState(NODE_STATUS_SUCCESS);
+          }
+          break;
+        case NODE_STATUS_SUCCESS:
+        case NODE_STATUS_FAILURE:
+           mePtr->setState(NODE_STATUS_SUCCESS);
+           this->visitor.moveUp();
+          break;
       }
     }
     else
@@ -416,14 +429,33 @@ byte BehaviorHandler::Tick_Inverter( boolean tickType )
     if ( this->visitor.moveDown() )
     {
       // processnode child, if true, set state inverse of child
-      byte childStatus = this->processNode(tickType);
-      if ( childStatus == NODE_STATUS_SUCCESS)
+      byte childStatus = this->visitor.current()->getState();
+      switch(childStatus )
       {
-        mePtr->setState(NODE_STATUS_FAILURE);
-      }
-      else if (childStatus == NODE_STATUS_FAILURE )
-      {
-        mePtr->setState(NODE_STATUS_SUCCESS);
+        case NODE_STATUS_EVENTDRIVEN:
+          this->visitor.moveUp();
+          break;
+        case NODE_STATUS_EVENTRAISED:
+        case NODE_STATUS_RUNNING:
+        case NODE_STATUS_UNTOUCH:
+          childStatus = this->processNode(tickType);
+          if ( childStatus == NODE_STATUS_SUCCESS)
+          {
+            mePtr->setState(NODE_STATUS_FAILURE);
+          }
+          else if (childStatus == NODE_STATUS_FAILURE )
+          {
+            mePtr->setState(NODE_STATUS_SUCCESS);
+          }
+          break;
+        case NODE_STATUS_SUCCESS:
+           mePtr->setState(NODE_STATUS_FAILURE);
+           this->visitor.moveUp();
+          break;
+        case NODE_STATUS_FAILURE:
+           mePtr->setState(NODE_STATUS_SUCCESS);
+           this->visitor.moveUp();
+          break;
       }
     }
     else
@@ -435,12 +467,13 @@ byte BehaviorHandler::Tick_Inverter( boolean tickType )
   return mePtr->getState();
 }
 
+// TODO: Event suport
 byte BehaviorHandler::Tick_Fail( boolean tickType )
 {
   // when end state of child, set to fail
   byte ret = NODE_STATUS_UNTOUCH;
   BehaviorTreeNode* mePtr = this->visitor.current();
-  if (mePtr->getState() == NODE_STATUS_RUNNING || mePtr->getState() == NODE_STATUS_UNTOUCH)
+  if (mePtr->getState() == NODE_STATUS_RUNNING || mePtr->getState() == NODE_STATUS_UNTOUCH )
   {
     mePtr->setState(NODE_STATUS_RUNNING);
     if ( this->visitor.moveDown() )
@@ -468,6 +501,7 @@ byte BehaviorHandler::Tick_Delete( boolean tickType )
   return NODE_STATUS_FAILURE;
 }
 
+// TODO: Event suport
 byte BehaviorHandler::Tick_Proxy( boolean tickType ) 
 {
   boolean ret = false;
@@ -555,11 +589,11 @@ byte BehaviorHandler::Tick_ClearBBValue( boolean tickType )
       case NODE_STATUS_UNTOUCH:
          // add to the scheduler
         this->b_tree.addScheduleNode( this->visitor.getIndex() );
-        this->visitor.current()->setState(NODE_STATUS_EVENTDRIVEN);
+        mePtr->setState(NODE_STATUS_EVENTDRIVEN);
         break;
-      case NODE_STATUS_EVENTDRIVEN:
+      case NODE_STATUS_EVENTRAISED:
         // triggered by event
-         this->visitor.current()->setState(NODE_STATUS_RUNNING);
+         mePtr->setState(NODE_STATUS_RUNNING);
         break;
     }
     if (  mePtr->getState() == NODE_STATUS_RUNNING)
@@ -571,10 +605,22 @@ byte BehaviorHandler::Tick_ClearBBValue( boolean tickType )
         if ( this->visitor.moveDown() )
         {
           // processnode child, if true, set state inverse of child
-          byte childStatus = this->processNode(tickType);
-          if ( childStatus == NODE_STATUS_SUCCESS || childStatus == NODE_STATUS_FAILURE)
+          byte childStatus = this->visitor.current()->getState();
+          switch (childStatus )
           {
-            mePtr->setState(childStatus);
+            case NODE_STATUS_EVENTRAISED:
+            case NODE_STATUS_UNTOUCH:
+            case NODE_STATUS_RUNNING:
+              childStatus = this->processNode(tickType);
+              if ( childStatus == NODE_STATUS_SUCCESS || childStatus == NODE_STATUS_FAILURE)
+              {
+                mePtr->setState(childStatus);
+              }
+              break;
+            case NODE_STATUS_SUCCESS:
+            case NODE_STATUS_FAILURE:
+              mePtr->setState(childStatus);
+              break;
           }
         }
         else
@@ -588,36 +634,40 @@ byte BehaviorHandler::Tick_ClearBBValue( boolean tickType )
         this->visitor.current()->setState(NODE_STATUS_SUCCESS);
       }
     }
-
-    byte ret = this->visitor.current()->getState();
     this->visitor.moveUp();
-    return ret;
+    return mePtr->getState();
   }
 
-  byte BehaviorHandler::Tick_WaitForEventTimeout( boolean tickType )
-  {
-    this->visitor.current()->setState(NODE_STATUS_FAILURE);
-    byte ret = this->visitor.current()->getState();
-    this->visitor.moveUp();
-    return ret;
-  }
+// TODO: Event suport
+byte BehaviorHandler::Tick_WaitForEventTimeout( boolean tickType )
+{
+  // on tick, check if timeout ok, if not return failure
+  this->visitor.current()->setState(NODE_STATUS_FAILURE);
+  byte ret = this->visitor.current()->getState();
+  this->visitor.moveUp();
+  return ret;
+}
+
+// TODO: Event suport
+byte BehaviorHandler::Tick_InRecentEvent( boolean tickType )
+{
+  // hum, is it really useful
+  this->visitor.current()->setState(NODE_STATUS_FAILURE);
+  byte ret = this->visitor.current()->getState();
+  this->visitor.moveUp();
+  return ret;
+}
   
-  byte BehaviorHandler::Tick_InRecentEvent( boolean tickType )
-  {
-    this->visitor.current()->setState(NODE_STATUS_FAILURE);
-    byte ret = this->visitor.current()->getState();
-    this->visitor.moveUp();
-    return ret;
-  }
-  
-  byte BehaviorHandler::Tick_RaiseEvent( boolean tickType )
-  {
-    this->visitor.current()->setState(NODE_STATUS_FAILURE);
-    byte ret = this->visitor.current()->getState();
-    this->visitor.moveUp();
-    return ret;
-  }
-  
+// TODO: Event suport
+byte BehaviorHandler::Tick_RaiseEvent( boolean tickType )
+{
+  // add event to b_tree from data ( type, evdata )
+  this->visitor.current()->setState(NODE_STATUS_FAILURE);
+  byte ret = this->visitor.current()->getState();
+  this->visitor.moveUp();
+  return ret;
+}
+
 
 byte BehaviorHandler::Tick_DebugPrint( boolean tickType )
 {

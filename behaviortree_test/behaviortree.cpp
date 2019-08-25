@@ -372,6 +372,7 @@ void BehaviorTree::init()
     this->events[i].type = BEHAVE_NO_EVENT;
     this->events[i].data = 0;
   }
+  this->needProcessingEvent = false;
 }
 
 int BehaviorTree::setRoot(byte type, int data)
@@ -701,6 +702,7 @@ boolean BehaviorTree::deserialize_flash( const byte* data )
 boolean BehaviorTree::fillSubNodeState(byte node, byte state)
 {
   this->nodes[node].setState(state);
+  // if is in shceduler and waiting, need to remove
   if (this->nodes[node].child != BEHAVE_NODE_NO_INDEX )
   {
     this->fillSubNodeState(this->nodes[node].child, state);
@@ -750,6 +752,10 @@ void BehaviorTree::initVisitor( BehaviorTreeVisitor& visitor )
   visitor.init( this->nodes, __MAXBEHAVIORTREENODE__, this->root);
 }
 
+void BehaviorTree::initVisitorWith( BehaviorTreeVisitor& visitor, byte nodeIdx )
+{
+  visitor.init( this->nodes, __MAXBEHAVIORTREENODE__, nodeIdx);
+}
 
 
 // management
@@ -782,7 +788,11 @@ boolean BehaviorTree::addEvent( byte type, byte data)
     // if idx is valid, call check for triggeer with current event
     if ( this->scheduleNodes[i] != BEHAVE_NODE_NO_INDEX)
     {
-      this-isTriggeredByEvent(i, oldestEventIdx);
+      if ( this-isTriggeredByEvent(i, oldestEventIdx) )
+      {
+        // set bt flag for need of processing based on trigger
+        this->needProcessingEvent = true;
+      }
     }
   }
 

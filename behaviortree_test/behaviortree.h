@@ -239,6 +239,7 @@ protected:
   byte oldestEventIdx;
   int scheduleNodesTimestamp[__MAXBSCHEDULENODE__];
   byte scheduleNodes[__MAXBSCHEDULENODE__];
+  boolean needProcessingEvent;
 
   int popFree();
   void PushFree(int idx);
@@ -268,6 +269,7 @@ public:
 
   // Visitor
   void initVisitor( BehaviorTreeVisitor& visitor );
+  void initVisitorWith( BehaviorTreeVisitor& visitor, byte nodeIdx );
 
   // management
   boolean deleteChildNode( byte parent, byte node);
