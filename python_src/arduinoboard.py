@@ -18,6 +18,9 @@ class ArduinoBoard():
 
     def disconnect(self):
         self.serial.close()
+
+    def writeSerial(self, text):
+        self.serial.write(text)
         
     def update(self):
         """

@@ -20,12 +20,17 @@ def index():
 @app.route('/connect')
 def connect():
     arduino.connect()
-    return 'Arduino Behavior tree Site'
+    return 'Connected'
 
 @app.route('/disconnect')
 def disconnect():
     arduino.disconnect()
-    return 'Arduino Behavior tree Site'
+    return 'Disconnected'
+
+@app.route('/write')
+def writeArduino():
+    arduino.writeSerial("Patate")
+    return 'Write'
 
 
 @app.route('/serial')

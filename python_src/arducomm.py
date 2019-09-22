@@ -19,6 +19,9 @@ class SerialArduino():
         self.portspeed = speed
         self.ser = serial.Serial(name, speed, timeout=1)
 
+    def write(self, text):
+        self.ser.write(text)
+
     def close(self):
         self.ser.close()
 
